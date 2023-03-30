@@ -1,9 +1,7 @@
 /// <reference types="chrome-types" />
 
 import { BarcodeDetectorPolyfill } from "@undecaf/barcode-detector-polyfill";
-const detector = new BarcodeDetectorPolyfill({
-  formats: ["qr_code"],
-});
+const detector = new BarcodeDetectorPolyfill();
 
 function isUrl(text: string): boolean {
   try {
