@@ -1,15 +1,9 @@
 import { defineConfig } from "vite";
 import { resolve } from "path";
 import { ZBAR_WASM_URL } from "./src/zbarWasmUrl";
-import { viteStaticCopy } from "vite-plugin-static-copy";
 import replace from "@rollup/plugin-replace";
 
 export default defineConfig({
-  resolve: {
-    alias: {
-      [ZBAR_WASM_URL]: "@undecaf/zbar-wasm",
-    },
-  },
   build: {
     lib: {
       entry: resolve(__dirname, "./src/service-worker.ts"),
@@ -20,20 +14,13 @@ export default defineConfig({
       output: {
         manualChunks: () => "service-worker.js",
       },
+      external: [ZBAR_WASM_URL],
     },
   },
   plugins: [
     replace({
       HTMLImageElement: "ImageData",
       preventAssignment: true,
-    }),
-    viteStaticCopy({
-      targets: [
-        {
-          src: "node_modules/@undecaf/zbar-wasm/dist/zbar.wasm",
-          dest: "./",
-        },
-      ],
     }),
   ],
 });
