@@ -1,7 +1,15 @@
 /// <reference types="chrome-types" />
+import { createStore } from "zustand/vanilla";
+import { getZXingModule } from "@sec-ant/barcode-detector";
+getZXingModule();
 
-import { BarcodeDetectorPolyfill } from "@undecaf/barcode-detector-polyfill";
-const detector = new BarcodeDetectorPolyfill();
+interface BartenderState {
+  imageUrl: string | undefined;
+}
+
+const bartenderStore = createStore<BartenderState>()(() => ({
+  imageUrl: undefined,
+}));
 
 function isUrl(text: string): boolean {
   try {
@@ -12,11 +20,13 @@ function isUrl(text: string): boolean {
   }
 }
 
+const barcodeDetector = new BarcodeDetector();
+
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: "bartender",
     title: "Bartender",
-    contexts: ["image"],
+    contexts: ["all"],
   });
 });
 
@@ -70,7 +80,6 @@ async function srcUrlToImageData(srcUrl: string) {
   consoleImage(imageBlob);
   const imageBitmap = await createImageBitmap(imageBlob);
   const { width, height } = imageBitmap;
-  console.log(width, height);
   const canvas = new OffscreenCanvas(width, height);
   const context = canvas.getContext("2d") as OffscreenCanvasRenderingContext2D;
   context.drawImage(imageBitmap, 0, 0, width, height);
@@ -79,18 +88,21 @@ async function srcUrlToImageData(srcUrl: string) {
 }
 
 async function handleBrowserContextMenuEvent(
-  info: chrome.contextMenus.OnClickData,
+  _: chrome.contextMenus.OnClickData,
   tab?: chrome.tabs.Tab
 ) {
   if (typeof tab === "undefined" || typeof tab.id === "undefined") {
     return;
   }
-  const { srcUrl } = info;
-  if (!srcUrl) {
+  const { imageUrl } = bartenderStore.getState();
+  if (typeof imageUrl === "undefined") {
     return;
   }
-  const imageData = await srcUrlToImageData(srcUrl);
-  const results = await detector.detect(imageData);
+  const imageData = await srcUrlToImageData(imageUrl);
+  const results = await barcodeDetector.detect(imageData);
+  bartenderStore.setState({
+    imageUrl: undefined,
+  });
   for (const result of results) {
     const { rawValue } = result;
     if (isUrl(rawValue)) {
@@ -101,3 +113,25 @@ async function handleBrowserContextMenuEvent(
 }
 
 chrome.contextMenus.onClicked.addListener(handleBrowserContextMenuEvent);
+
+chrome.runtime.onMessage.addListener(
+  (request: ChromeUrlMessage, sender, sendResponse) => {
+    if (sender.tab && request.type === "url") {
+      if (typeof request.value.url === "undefined") {
+        chrome.tabs
+          .captureVisibleTab(undefined, { format: "png" })
+          .then((imageUrl) => {
+            bartenderStore.setState({
+              imageUrl,
+            });
+          });
+      } else {
+        bartenderStore.setState({
+          imageUrl: request.value.url,
+        });
+      }
+      sendResponse();
+    }
+    return true;
+  }
+);

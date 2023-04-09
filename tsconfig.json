@@ -5,7 +5,6 @@
     "module": "ESNext",
     "lib": ["ESNext", "DOM"],
     "moduleResolution": "nodenext",
-    "typeRoots": ["src/@types", "node_modules/@types"],
     "strict": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
