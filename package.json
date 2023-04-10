@@ -13,12 +13,13 @@
     "@rollup/plugin-replace": "^5.0.2",
     "@types/offscreencanvas": "^2019.7.0",
     "chrome-types": "^0.1.183",
-    "rimraf": "^4.4.1",
+    "rimraf": "^5.0.0",
     "typescript": "^5.0.4",
     "vite": "^4.2.1"
   },
   "dependencies": {
-    "@sec-ant/barcode-detector": "^0.0.4",
+    "@resvg/resvg-wasm": "^2.4.1",
+    "@sec-ant/barcode-detector": "^0.1.0",
     "zustand": "^4.3.7"
   }
 }

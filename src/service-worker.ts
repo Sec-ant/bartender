@@ -1,7 +1,7 @@
 /// <reference types="chrome-types" />
 import { createStore } from "zustand/vanilla";
-import { getZXingModule } from "@sec-ant/barcode-detector";
-getZXingModule();
+import { Resvg, initWasm as initResvgWasm } from "@resvg/resvg-wasm";
+import "@sec-ant/barcode-detector";
 
 interface BartenderState {
   imageUrl: string | undefined;
@@ -22,7 +22,10 @@ function isUrl(text: string): boolean {
 
 const barcodeDetector = new BarcodeDetector();
 
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener(async () => {
+  await initResvgWasm(
+    fetch("https://cdn.jsdelivr.net/npm/@resvg/resvg-wasm@2.4.1/index_bg.wasm")
+  );
   chrome.contextMenus.create({
     id: "bartender",
     title: "Bartender",
@@ -76,7 +79,14 @@ async function srcUrlToImageData(srcUrl: string) {
   if (!resp.ok) {
     throw new Error(`Failed to request the image: ${srcUrl}`);
   }
-  const imageBlob = await resp.blob();
+  let imageBlob = await resp.blob();
+  if (imageBlob.type === "image/svg+xml") {
+    const svgUint8Array = new Uint8Array(await imageBlob.arrayBuffer());
+    const resvgJS = new Resvg(svgUint8Array);
+    const pngData = resvgJS.render();
+    const pngBuffer = pngData.asPng();
+    imageBlob = new Blob([pngBuffer], { type: "image/png" });
+  }
   consoleImage(imageBlob);
   const imageBitmap = await createImageBitmap(imageBlob);
   const { width, height } = imageBitmap;
