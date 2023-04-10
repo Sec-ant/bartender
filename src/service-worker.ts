@@ -1,30 +1,29 @@
 /// <reference types="chrome-types" />
 import { createStore } from "zustand/vanilla";
-import { Resvg, initWasm as initResvgWasm } from "@resvg/resvg-wasm";
+import { initWasm as initResvgWasm } from "@resvg/resvg-wasm";
 import "@sec-ant/barcode-detector";
 
+import { isUrl, imageUrlToImageData } from "./utils.js";
+
 interface BartenderState {
-  imageUrl: string | undefined;
+  x: number;
+  y: number;
+  imageUrlPromise: Promise<string | undefined>;
 }
 
 const bartenderStore = createStore<BartenderState>()(() => ({
-  imageUrl: undefined,
+  x: NaN,
+  y: NaN,
+  imageUrlPromise: Promise.resolve(undefined),
 }));
-
-function isUrl(text: string): boolean {
-  try {
-    new URL(text);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 const barcodeDetector = new BarcodeDetector();
 
 chrome.runtime.onInstalled.addListener(async () => {
   await initResvgWasm(
-    fetch("https://cdn.jsdelivr.net/npm/@resvg/resvg-wasm@2.4.1/index_bg.wasm")
+    fetch(
+      `https://cdn.jsdelivr.net/npm/@resvg/resvg-wasm@${__RESVG_WASM_VERSION__}/index_bg.wasm`
+    )
   );
   chrome.contextMenus.create({
     id: "bartender",
@@ -33,70 +32,6 @@ chrome.runtime.onInstalled.addListener(async () => {
   });
 });
 
-async function consoleImage(
-  blob: Blob,
-  { size: s = 100, color: c = "transparent" } = {}
-) {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.addEventListener(
-      "load",
-      () => {
-        /* Format the CSS string for console.log */
-        const o =
-          "background: url('" +
-          r.result +
-          "') left top no-repeat; font-size: " +
-          s +
-          "px; background-size: contain; background-color:" +
-          c;
-        /* Output to the console. */
-        console.log("%c     ", o);
-        resolve(o);
-      },
-      false
-    );
-    r.addEventListener(
-      "error",
-      (ev) => {
-        reject(ev);
-      },
-      false
-    );
-    r.addEventListener(
-      "abort",
-      (ev) => {
-        reject(ev);
-      },
-      false
-    );
-    r.readAsDataURL(blob);
-  });
-}
-
-async function srcUrlToImageData(srcUrl: string) {
-  const resp = await fetch(srcUrl);
-  if (!resp.ok) {
-    throw new Error(`Failed to request the image: ${srcUrl}`);
-  }
-  let imageBlob = await resp.blob();
-  if (imageBlob.type === "image/svg+xml") {
-    const svgUint8Array = new Uint8Array(await imageBlob.arrayBuffer());
-    const resvgJS = new Resvg(svgUint8Array);
-    const pngData = resvgJS.render();
-    const pngBuffer = pngData.asPng();
-    imageBlob = new Blob([pngBuffer], { type: "image/png" });
-  }
-  consoleImage(imageBlob);
-  const imageBitmap = await createImageBitmap(imageBlob);
-  const { width, height } = imageBitmap;
-  const canvas = new OffscreenCanvas(width, height);
-  const context = canvas.getContext("2d") as OffscreenCanvasRenderingContext2D;
-  context.drawImage(imageBitmap, 0, 0, width, height);
-  const imageData = context.getImageData(0, 0, width, height);
-  return imageData;
-}
-
 async function handleBrowserContextMenuEvent(
   _: chrome.contextMenus.OnClickData,
   tab?: chrome.tabs.Tab
@@ -104,19 +39,22 @@ async function handleBrowserContextMenuEvent(
   if (typeof tab === "undefined" || typeof tab.id === "undefined") {
     return;
   }
-  const { imageUrl } = bartenderStore.getState();
+  const { imageUrlPromise } = bartenderStore.getState();
+  const imageUrl = await imageUrlPromise;
   if (typeof imageUrl === "undefined") {
     return;
   }
-  const imageData = await srcUrlToImageData(imageUrl);
+  const imageData = await imageUrlToImageData(imageUrl);
   const results = await barcodeDetector.detect(imageData);
   bartenderStore.setState({
-    imageUrl: undefined,
+    x: NaN,
+    y: NaN,
+    imageUrlPromise: Promise.resolve(undefined),
   });
   for (const result of results) {
     const { rawValue } = result;
     if (isUrl(rawValue)) {
-      chrome.tabs.create({ url: rawValue });
+      chrome.tabs.create({ url: rawValue, active: false });
     }
     console.log(result);
   }
@@ -124,24 +62,36 @@ async function handleBrowserContextMenuEvent(
 
 chrome.contextMenus.onClicked.addListener(handleBrowserContextMenuEvent);
 
-chrome.runtime.onMessage.addListener(
-  (request: ChromeUrlMessage, sender, sendResponse) => {
-    if (sender.tab && request.type === "url") {
-      if (typeof request.value.url === "undefined") {
-        chrome.tabs
-          .captureVisibleTab(undefined, { format: "png" })
-          .then((imageUrl) => {
-            bartenderStore.setState({
-              imageUrl,
-            });
-          });
-      } else {
-        bartenderStore.setState({
-          imageUrl: request.value.url,
-        });
-      }
-      sendResponse();
-    }
-    return true;
+function handleBrowserMessage(
+  message: BrowserMessage,
+  sender: chrome.runtime.MessageSender,
+  sendResponse: () => void
+): boolean | undefined {
+  if (typeof sender.tab === "undefined") {
+    return;
   }
-);
+  switch (message.type) {
+    case "context-menu":
+      handleBrowserContextMenuMessage(message);
+  }
+  sendResponse();
+  return true;
+}
+
+function handleBrowserContextMenuMessage({
+  value: { x, y, imageUrl },
+}: BrowserContextMenuMessage): void {
+  let imageUrlPromise = Promise.resolve(imageUrl);
+  if (
+    typeof imageUrl === "undefined" ||
+    // blob url cannot be shared to service worker
+    new URL(imageUrl).protocol === "blob:"
+  ) {
+    imageUrlPromise = chrome.tabs.captureVisibleTab(undefined, {
+      format: "png",
+    });
+  }
+  bartenderStore.setState({ x, y, imageUrlPromise });
+}
+
+chrome.runtime.onMessage.addListener(handleBrowserMessage);

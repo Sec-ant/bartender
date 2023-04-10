@@ -10,12 +10,12 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@rollup/plugin-replace": "^5.0.2",
     "@types/offscreencanvas": "^2019.7.0",
     "chrome-types": "^0.1.183",
     "rimraf": "^5.0.0",
     "typescript": "^5.0.4",
-    "vite": "^4.2.1"
+    "vite": "^4.2.1",
+    "vite-plugin-build": "^0.8.0"
   },
   "dependencies": {
     "@resvg/resvg-wasm": "^2.4.1",
