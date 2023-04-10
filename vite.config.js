@@ -3,17 +3,6 @@ import { buildPlugin } from "vite-plugin-build";
 import { packages } from "./package-lock.json";
 
 export default defineConfig({
-  /*
-  build: {
-    lib: {
-      entry: {
-        "service-worker": "./src/service-worker.ts",
-        "content-script": "./src/content-script.ts",
-      },
-      formats: ["es", "iife"],
-    },
-  },
-  */
   plugins: [
     buildPlugin({
       fileBuild: false,
@@ -21,7 +10,7 @@ export default defineConfig({
         buildOptions: [
           {
             lib: {
-              entry: { "service-worker": "./src/service-worker.ts" },
+              entry: { "service-worker": "./src/service-worker/index.ts" },
               formats: ["es"],
               fileName: (_, entryName) => entryName + ".js",
             },
@@ -29,10 +18,10 @@ export default defineConfig({
           {
             lib: {
               entry: {
-                "content-script": "./src/content-script.ts",
+                "content-script": "./src/content-script/index.ts",
               },
-              name: "bartender",
               formats: ["iife"],
+              name: "Bartender",
               fileName: (_, entryName) => entryName + ".js",
             },
           },

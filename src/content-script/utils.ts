@@ -1,75 +1,18 @@
-import { Resvg } from "@resvg/resvg-wasm";
-
-export async function consoleImage(
-  blob: Blob,
-  { size: s = 100, color: c = "transparent" } = {}
-): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.addEventListener(
-      "load",
-      () => {
-        const o =
-          "background: url('" +
-          r.result +
-          "') left top no-repeat; font-size: " +
-          s +
-          "px; background-size: contain; background-color:" +
-          c;
-        console.log("%c     ", o);
-        resolve(o);
-      },
-      false
-    );
-    r.addEventListener(
-      "error",
-      (ev) => {
-        reject(ev);
-      },
-      false
-    );
-    r.addEventListener(
-      "abort",
-      (ev) => {
-        reject(ev);
-      },
-      false
-    );
-    r.readAsDataURL(blob);
+export function isElementVisible(element: Element): boolean {
+  let isVisible = element.checkVisibility?.({
+    checkOpacity: true,
+    checkVisibilityCSS: true,
   });
-}
-
-export function isUrl(text: string): boolean {
-  try {
-    new URL(text);
-    return true;
-  } catch {
-    return false;
+  if (typeof isVisible === "undefined") {
+    const style = window.getComputedStyle(element);
+    isVisible =
+      style.display !== "none" &&
+      style.visibility !== "hidden" &&
+      style.visibility !== "collapse" &&
+      style.contentVisibility !== "hidden" &&
+      style.opacity !== "0";
   }
-}
-
-export async function imageUrlToImageData(imageUrl: string) {
-  const resp = await fetch(imageUrl);
-  if (!resp.ok) {
-    throw new Error(`Failed to request the image: ${imageUrl}`);
-  }
-  let imageBlob = await resp.blob();
-  if (imageBlob.type === "image/svg+xml") {
-    const svgUint8Array = new Uint8Array(await imageBlob.arrayBuffer());
-    const resvgJS = new Resvg(svgUint8Array);
-    const pngData = resvgJS.render();
-    const pngBuffer = pngData.asPng();
-    imageBlob = new Blob([pngBuffer], { type: "image/png" });
-    pngData.free();
-  }
-  // consoleImage(imageBlob);
-  const imageBitmap = await createImageBitmap(imageBlob);
-  const { width, height } = imageBitmap;
-  const canvas = new OffscreenCanvas(width, height);
-  const context = canvas.getContext("2d") as OffscreenCanvasRenderingContext2D;
-  context.drawImage(imageBitmap, 0, 0, width, height);
-  const imageData = context.getImageData(0, 0, width, height);
-  return imageData;
+  return isVisible;
 }
 
 export function getUrlFromImageLikeElement(
@@ -138,23 +81,6 @@ export function isHTMLVideoElement(
   } catch {
     return false;
   }
-}
-
-export function isElementVisible(element: Element): boolean {
-  let isVisible = element.checkVisibility?.({
-    checkOpacity: true,
-    checkVisibilityCSS: true,
-  });
-  if (typeof isVisible === "undefined") {
-    const style = window.getComputedStyle(element);
-    isVisible =
-      style.display !== "none" &&
-      style.visibility !== "hidden" &&
-      style.visibility !== "collapse" &&
-      style.contentVisibility !== "hidden" &&
-      style.opacity !== "0";
-  }
-  return isVisible;
 }
 
 export function svgToTinyDataUri(svg: SVGElement): string {

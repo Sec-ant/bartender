@@ -1,30 +1,12 @@
 /// <reference types="chrome-types" />
-import { createStore } from "zustand/vanilla";
-import { initWasm as initResvgWasm } from "@resvg/resvg-wasm";
 import "@sec-ant/barcode-detector";
 
 import { isUrl, imageUrlToImageData } from "./utils.js";
-
-interface BartenderState {
-  x: number;
-  y: number;
-  imageUrlPromise: Promise<string | undefined>;
-}
-
-const bartenderStore = createStore<BartenderState>()(() => ({
-  x: NaN,
-  y: NaN,
-  imageUrlPromise: Promise.resolve(undefined),
-}));
+import { bartenderStore } from "./store.js";
 
 const barcodeDetector = new BarcodeDetector();
 
-chrome.runtime.onInstalled.addListener(async () => {
-  await initResvgWasm(
-    fetch(
-      `https://cdn.jsdelivr.net/npm/@resvg/resvg-wasm@${__RESVG_WASM_VERSION__}/index_bg.wasm`
-    )
-  );
+chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: "bartender",
     title: "Bartender",
