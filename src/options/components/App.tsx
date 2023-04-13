@@ -86,14 +86,16 @@ function SwitchControl<
   label,
   value,
   onChange,
+  hydrated = true,
   disabled = false,
 }: {
   label: string;
   value: BartenderOptionsPersistState[T];
   onChange: React.ChangeEventHandler<HTMLInputElement>;
+  hydrated?: boolean;
   disabled?: boolean;
 }) {
-  return (
+  return hydrated ? (
     <FormControlLabel
       control={<Switch size="small" checked={value} onChange={onChange} />}
       label={
@@ -108,6 +110,13 @@ function SwitchControl<
       }
       disabled={disabled}
     />
+  ) : (
+    <Skeleton variant="rounded" width="100%">
+      <FormControlLabel
+        control={<Switch size="small" />}
+        label={<Typography variant="caption" />}
+      />
+    </Skeleton>
   );
 }
 
@@ -162,6 +171,7 @@ function NumberControl<
   min,
   step,
   endAdornment,
+  hydrated = true,
   disabled = false,
 }: {
   label: string;
@@ -170,9 +180,10 @@ function NumberControl<
   min?: number;
   step?: number;
   endAdornment?: string;
+  hydrated?: boolean;
   disabled?: boolean;
 }) {
-  return (
+  return hydrated ? (
     <TextField
       fullWidth
       size="small"
@@ -200,6 +211,10 @@ function NumberControl<
       onChange={onChange}
       disabled={disabled}
     />
+  ) : (
+    <Skeleton variant="rounded" width="100%">
+      <TextField fullWidth size="small" />
+    </Skeleton>
   );
 }
 
@@ -265,6 +280,7 @@ function SelectControl<
       .split("-")
       .map((word) => word[0].toUpperCase() + word.slice(1))
       .join(" "),
+  hydrated = true,
   disabled = false,
 }: {
   label: string;
@@ -272,9 +288,10 @@ function SelectControl<
   onChange: React.ChangeEventHandler<HTMLInputElement>;
   valueOptions: readonly BartenderOptionsPersistState[T][];
   valueOptionMap?: (valueOption: BartenderOptionsPersistState[T]) => string;
+  hydrated?: boolean;
   disabled?: boolean;
 }) {
-  return (
+  return hydrated ? (
     <TextField
       fullWidth
       size="small"
@@ -294,6 +311,10 @@ function SelectControl<
         </option>
       ))}
     </TextField>
+  ) : (
+    <Skeleton variant="rounded" width="100%">
+      <TextField fullWidth size="small" />
+    </Skeleton>
   );
 }
 
@@ -359,107 +380,112 @@ function App() {
           margin: 2,
         }}
       >
-        {hasHydrated ? (
-          <Grid container spacing={1} alignItems={"center"}>
-            <Grid item xs={6}>
-              <SwitchControl
-                label="Auto open URL"
-                value={openUrl}
-                onChange={handleOpenUrlChange}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <SwitchControl
-                label="Auto change focus"
-                value={changeFocus}
-                onChange={handleChangeFocusChange}
-                disabled={!openUrl}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <SelectControl
-                label="Target of open"
-                value={openTarget}
-                onChange={handleOpenTargetChange}
-                valueOptions={openTargets}
-                disabled={!openUrl}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <SelectControl
-                label="Behavior of open"
-                value={openBehavior}
-                onChange={handleOpenBehaviorChange}
-                valueOptions={openBehaviors}
-                disabled={!openUrl}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <NumberControl
-                label="Max count of URL"
-                value={maxUrlCount}
-                onChange={handleMaxUrlCountChange}
-                min={1}
-                step={1}
-                disabled={
-                  !openUrl ||
-                  openBehavior === "open-first" ||
-                  openBehavior === "open-last"
-                }
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <Divider />
-            </Grid>
-            <Grid item xs={6}>
-              <SwitchControl
-                label="Auto copy to clipboard"
-                value={copyToClipboard}
-                onChange={handleCopyToClipboardChange}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <SelectControl
-                label="Behavior of copy"
-                value={copyBehavior}
-                onChange={handleCopyBehaviorChange}
-                valueOptions={copyBehaviors}
-                disabled={!copyToClipboard}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <NumberControl
-                label="Interval of copy"
-                value={copyInterval}
-                onChange={handleCopyIntervalChange}
-                min={0}
-                step={1}
-                endAdornment="ms"
-                disabled={
-                  !copyToClipboard ||
-                  copyBehavior === "copy-first" ||
-                  copyBehavior === "copy-last"
-                }
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <NumberControl
-                label="Max count of copy"
-                value={maxCopyCount}
-                onChange={handleMaxCopyCountChange}
-                min={1}
-                step={1}
-                disabled={
-                  !copyToClipboard ||
-                  copyBehavior === "copy-first" ||
-                  copyBehavior === "copy-last"
-                }
-              />
-            </Grid>
+        <Grid container spacing={1} alignItems={"center"}>
+          <Grid item xs={6}>
+            <SwitchControl
+              label="Auto open URL"
+              value={openUrl}
+              onChange={handleOpenUrlChange}
+              hydrated={hasHydrated}
+            />
           </Grid>
-        ) : (
-          <Skeleton />
-        )}
+          <Grid item xs={6}>
+            <SwitchControl
+              label="Auto change focus"
+              value={changeFocus}
+              onChange={handleChangeFocusChange}
+              disabled={!openUrl}
+              hydrated={hasHydrated}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <SelectControl
+              label="Target of open"
+              value={openTarget}
+              onChange={handleOpenTargetChange}
+              valueOptions={openTargets}
+              disabled={!openUrl}
+              hydrated={hasHydrated}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <SelectControl
+              label="Behavior of open"
+              value={openBehavior}
+              onChange={handleOpenBehaviorChange}
+              valueOptions={openBehaviors}
+              disabled={!openUrl}
+              hydrated={hasHydrated}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <NumberControl
+              label="Max count of URL"
+              value={maxUrlCount}
+              onChange={handleMaxUrlCountChange}
+              min={1}
+              step={1}
+              disabled={
+                !openUrl ||
+                openBehavior === "open-first" ||
+                openBehavior === "open-last"
+              }
+              hydrated={hasHydrated}
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <Divider />
+          </Grid>
+          <Grid item xs={6}>
+            <SwitchControl
+              label="Auto copy to clipboard"
+              value={copyToClipboard}
+              onChange={handleCopyToClipboardChange}
+              hydrated={hasHydrated}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <SelectControl
+              label="Behavior of copy"
+              value={copyBehavior}
+              onChange={handleCopyBehaviorChange}
+              valueOptions={copyBehaviors}
+              disabled={!copyToClipboard}
+              hydrated={hasHydrated}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <NumberControl
+              label="Interval of copy"
+              value={copyInterval}
+              onChange={handleCopyIntervalChange}
+              min={0}
+              step={1}
+              endAdornment="ms"
+              disabled={
+                !copyToClipboard ||
+                copyBehavior === "copy-first" ||
+                copyBehavior === "copy-last"
+              }
+              hydrated={hasHydrated}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <NumberControl
+              label="Max count of copy"
+              value={maxCopyCount}
+              onChange={handleMaxCopyCountChange}
+              min={1}
+              step={1}
+              disabled={
+                !copyToClipboard ||
+                copyBehavior === "copy-first" ||
+                copyBehavior === "copy-last"
+              }
+              hydrated={hasHydrated}
+            />
+          </Grid>
+        </Grid>
       </Box>
     </ThemeProvider>
   );
