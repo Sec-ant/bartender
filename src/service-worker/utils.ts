@@ -73,3 +73,35 @@ export async function consoleImage(
     r.readAsDataURL(blob);
   });
 }
+
+export function openUrl(
+  results: DetectedBarcode[],
+  maxUrlCount = Infinity
+) {
+  let tabCount = 0;
+  results.forEach((result) => {
+    const { rawValue } = result;
+    if (isUrl(rawValue)) {
+      if (tabCount < maxUrlCount) {
+        chrome.tabs.create({ url: rawValue, active: false });
+        ++tabCount;
+      }
+    }
+  });
+}
+
+export async function copyToClipboard(contents: string[]) {
+  await chrome.offscreen.createDocument({
+    url: "/offscreen.html",
+    reasons: ["CLIPBOARD"],
+    justification: "write text to the clipboard",
+  });
+  const message: WriteClipboardMessage = {
+    type: "clipboard",
+    target: "offscreen",
+    payload: {
+      contents,
+    },
+  };
+  await chrome.runtime.sendMessage(message);
+}

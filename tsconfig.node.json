@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.settings.json",
+  "compilerOptions": {
+    "composite": true,
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true
+  },
+  "include": ["vite.config.ts", "package-lock.json"]
+}

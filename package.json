@@ -11,6 +11,9 @@
   },
   "devDependencies": {
     "@types/offscreencanvas": "^2019.7.0",
+    "@types/react": "^18.0.34",
+    "@types/react-dom": "^18.0.11",
+    "@vitejs/plugin-react": "^3.1.0",
     "chrome-types": "^0.1.183",
     "rimraf": "^5.0.0",
     "typescript": "^5.0.4",
@@ -18,8 +21,15 @@
     "vite-plugin-build": "^0.8.0"
   },
   "dependencies": {
+    "@emotion/react": "^11.10.6",
+    "@emotion/styled": "^11.10.6",
+    "@mui/material": "^5.11.16",
     "@resvg/resvg-wasm": "^2.4.1",
     "@sec-ant/barcode-detector": "^0.1.0",
+    "beautiful-react-hooks": "^4.3.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "use-debounce": "^9.0.4",
     "zustand": "^4.3.7"
   }
 }
