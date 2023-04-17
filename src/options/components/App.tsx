@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useReducer } from "react";
 import {
   CssBaseline,
   ThemeProvider,
@@ -15,6 +15,7 @@ import {
   copyBehaviors,
   openTargets,
   openBehaviors,
+  detectRegions,
 } from "../../common";
 import { useSwitchControl, SwitchControl } from "./SwitchControl";
 import { useNumberControl, NumberControl } from "./NumberControl";
@@ -38,6 +39,19 @@ function App() {
   const theme = useAutoTheme();
 
   const hasHydrated = useHydration(useBartenderOptionsStore);
+
+  const [detectRegion, handleDetectRegionChange] = useSelectControl(
+    "detectRegion",
+    hasHydrated,
+    useBartenderOptionsStore
+  );
+
+  const [tolerance, handleToleranceChange] = useNumberControl(
+    "tolerance",
+    hasHydrated,
+    useBartenderOptionsStore,
+    (s) => parseFloat(s || "0")
+  );
 
   const [openUrl, handleOpenUrlChange] = useSwitchControl(
     "openUrl",
@@ -106,6 +120,29 @@ function App() {
         }}
       >
         <Grid container spacing={1} alignItems={"center"}>
+          <Grid item xs={6}>
+            <SelectControl
+              label="Detect Region"
+              value={detectRegion}
+              onChange={handleDetectRegionChange}
+              valueOptions={detectRegions}
+              hydrated={hasHydrated}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <NumberControl
+              label="Tolerance"
+              value={tolerance}
+              onChange={handleToleranceChange}
+              step={1}
+              endAdornment="px"
+              disabled={detectRegion !== "under-cursor"}
+              hydrated={hasHydrated}
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <Divider />
+          </Grid>
           <Grid item xs={6}>
             <SwitchControl
               label="Auto open URL"

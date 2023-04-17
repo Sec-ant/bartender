@@ -3,7 +3,7 @@ import { useDebouncedCallback } from "use-debounce";
 import { TextField, InputAdornment, Skeleton } from "@mui/material";
 
 import { BartenderOptionsState, UseBatenderOptionsStore } from "../../common";
-import { KeysMatching } from "../utils";
+import { KeysMatching, useRehydrationEffect } from "../utils";
 
 export function useNumberControl<
   T extends KeysMatching<BartenderOptionsState, number>
@@ -43,6 +43,13 @@ export function useNumberControl<
       setState(useStore.getState()[stateName]);
     }
   }, [hasHydrated]);
+
+  const rehydrationCallback = useCallback(async () => {
+    await useStore.persist.rehydrate();
+    setState(useStore.getState()[stateName]);
+  }, [useStore, stateName]);
+  useRehydrationEffect(rehydrationCallback);
+
   return [state, handleStateChange] as const;
 }
 

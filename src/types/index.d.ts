@@ -5,6 +5,8 @@ declare interface ContextMenuOpenedMessage {
   payload: {
     x: number;
     y: number;
+    ex: number;
+    ey: number;
     imageUrl: string | undefined;
   };
 }

@@ -1,6 +1,11 @@
 import "@sec-ant/barcode-detector";
 
-import { copyToClipboard, openUrl, imageUrlToImageData } from "./utils.js";
+import {
+  copyToClipboard,
+  openUrl,
+  imageUrlToImageData,
+  robustPointInPolygon,
+} from "./utils.js";
 import { bartenderStore } from "./store.js";
 import { useBartenderOptionsStore } from "../common/index.js";
 
@@ -47,10 +52,12 @@ function handleMessage(
 }
 
 function handleContextMenuOpenedMessage({
-  payload: { x, y, imageUrl },
+  payload: { x, y, ex, ey, imageUrl },
 }: ContextMenuOpenedMessage): Promise<string | undefined> {
   let imageUrlPromise = Promise.resolve(imageUrl);
+  const { detectRegion } = useBartenderOptionsStore.getState();
   if (
+    detectRegion === "whole-page" ||
     typeof imageUrl === "undefined" ||
     // blob url cannot be shared to service worker
     new URL(imageUrl).protocol === "blob:"
@@ -58,6 +65,9 @@ function handleContextMenuOpenedMessage({
     imageUrlPromise = chrome.tabs.captureVisibleTab(undefined, {
       format: "png",
     });
+  } else {
+    x = ex;
+    y = ey;
   }
   bartenderStore.setState({ x, y, imageUrlPromise });
   return imageUrlPromise;
@@ -70,13 +80,13 @@ async function handleContextMenuClicked(
   if (typeof tab === "undefined" || typeof tab.id === "undefined") {
     return;
   }
-  const { imageUrlPromise } = bartenderStore.getState();
+  const { x, y, imageUrlPromise } = bartenderStore.getState();
   const imageUrl = await imageUrlPromise;
   if (typeof imageUrl === "undefined") {
     return;
   }
   const imageData = await imageUrlToImageData(imageUrl);
-  const results = await barcodeDetector.detect(imageData);
+  let results = await barcodeDetector.detect(imageData);
   bartenderStore.setState({
     x: NaN,
     y: NaN,
@@ -84,6 +94,9 @@ async function handleContextMenuClicked(
   });
 
   const {
+    detectRegion,
+    tolerance,
+
     openUrl: shouldOpenUrl,
     changeFocus,
     openTarget,
@@ -95,6 +108,16 @@ async function handleContextMenuClicked(
     copyInterval,
     maxCopyCount,
   } = useBartenderOptionsStore.getState();
+
+  if (detectRegion === "under-cursor") {
+    results = results.filter(
+      ({ cornerPoints }) =>
+        robustPointInPolygon(
+          cornerPoints.map(({ x, y }) => [x, y] as const),
+          [x * imageData.width, y * imageData.height]
+        ) < 1
+    );
+  }
 
   if (shouldOpenUrl) {
     openUrl(results, {

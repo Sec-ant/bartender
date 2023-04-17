@@ -1,11 +1,21 @@
 import { Resvg } from "@resvg/resvg-wasm";
 import { bartenderStore } from "./store.js";
 import { BartenderOptionsState } from "../common/store.js";
+import { orient2dfast as orient } from "robust-predicates";
 
 export function isUrl(text: string): boolean {
   try {
-    new URL(text);
-    return true;
+    const url = new URL(text);
+    const schemes = [
+      "http",
+      "https",
+      "data",
+      "blob",
+      "javascript",
+      "about",
+      "mailto",
+    ];
+    return schemes.includes(url.protocol.match(/.+(?=:$)/)?.[0] || "");
   } catch {
     return false;
   }
@@ -190,4 +200,88 @@ export async function copyToClipboard(
     },
   };
   await chrome.runtime.sendMessage(message);
+}
+
+/**
+ * source: https://github.com/mikolalysenko/robust-point-in-polygon
+ *         https://github.com/mikolalysenko/robust-point-in-polygon/issues/2#issuecomment-1371537705
+ * @param vs
+ * @param point
+ * @returns
+ */
+
+export function robustPointInPolygon(
+  vs: (readonly [number, number])[],
+  [x, y]: readonly [number, number]
+): -1 | 0 | 1 {
+  const n = vs.length;
+  let inside = 1;
+  let lim = n;
+  for (let i = 0, j = n - 1; i < lim; j = i++) {
+    const [xi, yi] = vs[i];
+    const [xj, yj] = vs[j];
+    if (yj < yi) {
+      if (yj < y && y < yi) {
+        const s = orient(xi, yi, xj, yj, x, y);
+        if (s === 0) return 0;
+        inside ^= +(0 < s);
+      } else if (y === yi) {
+        if (x === xi) return 0;
+        const c = vs[(i + 1) % n];
+        const yk = c[1];
+        if (yi < yk) {
+          const s = orient(xi, yi, xj, yj, x, y);
+          if (s === 0) return 0;
+          inside ^= +(0 < s);
+        }
+      }
+    } else if (yi < yj) {
+      if (yi < y && y < yj) {
+        const s = orient(xi, yi, xj, yj, x, y);
+        if (s === 0) return 0;
+        inside ^= +(s < 0);
+      } else if (y === yi) {
+        if (x === xi) return 0;
+        const c = vs[(i + 1) % n];
+        const yk = c[1];
+        if (yk < yi) {
+          const s = orient(xi, yi, xj, yj, x, y);
+          if (s === 0) return 0;
+          inside ^= +(s < 0);
+        }
+      }
+    } else if (y === yi) {
+      let x0 = Math.min(xi, xj);
+      let x1 = Math.max(xi, xj);
+      if (i === 0) {
+        while (j > 0) {
+          const k = (j + n - 1) % n;
+          const p = vs[k];
+          if (p[1] !== y) break;
+          const px = p[0];
+          x0 = Math.min(x0, px);
+          x1 = Math.max(x1, px);
+          j = k;
+        }
+        if (j === 0) {
+          if (x0 <= x && x <= x1) return 0;
+          return 1;
+        }
+        lim = j + 1;
+      }
+      const y0 = vs[(j + n - 1) % n][1];
+      while (i + 1 < lim) {
+        const p = vs[i + 1];
+        if (p[1] !== y) break;
+        const px = p[0];
+        x0 = Math.min(x0, px);
+        x1 = Math.max(x1, px);
+        i += 1;
+      }
+      if (x0 <= x && x <= x1) return 0;
+      const y1 = vs[(i + 1) % n][1];
+      if (x < x0 && y0 < y !== y1 < y) inside ^= 1;
+    }
+  }
+  return (2 * inside - 1) as -1 | 1;
 }

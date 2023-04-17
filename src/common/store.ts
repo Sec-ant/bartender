@@ -12,6 +12,10 @@ const browserSyncStorage: StateStorage = {
     return (await chrome.storage.sync.get(name))[name] ?? null;
   },
   setItem: async (name: string, value: string): Promise<void> => {
+    const currentValue = (await chrome.storage.sync.get(name))[name] ?? null;
+    if (currentValue === value) {
+      return;
+    }
     await chrome.storage.sync.set({
       [name]: value,
     });
@@ -20,6 +24,14 @@ const browserSyncStorage: StateStorage = {
     await chrome.storage.sync.remove(name);
   },
 };
+
+export const detectRegions = [
+  "dom-element",
+  "whole-page",
+  "under-cursor",
+] as const;
+
+export type DetectRegion = typeof detectRegions[number];
 
 export const openTargets = [
   "one-tab-each",
@@ -47,7 +59,16 @@ export const copyBehaviors = [
 
 export type CopyBehavior = typeof copyBehaviors[number];
 
+export type SelectType =
+  | DetectRegion
+  | OpenTarget
+  | OpenBehavior
+  | CopyBehavior;
+
 export interface BartenderOptionsState {
+  detectRegion: DetectRegion;
+  tolerance: number;
+
   openUrl: boolean;
   changeFocus: boolean;
   openTarget: OpenTarget;
@@ -61,6 +82,9 @@ export interface BartenderOptionsState {
 }
 
 export const defaultBartenderOptionsState: BartenderOptionsState = {
+  detectRegion: "dom-element",
+  tolerance: 0,
+
   openUrl: true,
   changeFocus: false,
   openTarget: "one-tab-each",

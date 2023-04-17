@@ -26,9 +26,9 @@
     "@mui/material": "^5.11.16",
     "@resvg/resvg-wasm": "^2.4.1",
     "@sec-ant/barcode-detector": "^0.1.0",
-    "beautiful-react-hooks": "^4.3.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "robust-predicates": "^3.0.1",
     "use-debounce": "^9.0.4",
     "zustand": "^4.3.7"
   }

@@ -2,20 +2,17 @@ import { useState, useCallback, useEffect } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import { TextField, Skeleton } from "@mui/material";
 
+import { useRehydrationEffect } from "../utils";
+
 import {
   BartenderOptionsState,
   UseBatenderOptionsStore,
-  OpenTarget,
-  OpenBehavior,
-  CopyBehavior,
+  SelectType,
 } from "../../common";
 import { KeysMatching } from "../utils";
 
 export function useSelectControl<
-  T extends KeysMatching<
-    BartenderOptionsState,
-    OpenTarget | OpenBehavior | CopyBehavior
-  >
+  T extends KeysMatching<BartenderOptionsState, SelectType>
 >(
   stateName: T,
   hasHydrated: boolean,
@@ -53,14 +50,18 @@ export function useSelectControl<
       setState(useStore.getState()[stateName]);
     }
   }, [hasHydrated]);
+
+  const rehydrationCallback = useCallback(async () => {
+    await useStore.persist.rehydrate();
+    setState(useStore.getState()[stateName]);
+  }, [useStore, stateName]);
+  useRehydrationEffect(rehydrationCallback);
+
   return [state, handleStateChange] as const;
 }
 
 export function SelectControl<
-  T extends KeysMatching<
-    BartenderOptionsState,
-    OpenTarget | OpenBehavior | CopyBehavior
-  >
+  T extends KeysMatching<BartenderOptionsState, SelectType>
 >({
   label,
   value,

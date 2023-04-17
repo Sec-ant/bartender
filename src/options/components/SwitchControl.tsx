@@ -3,7 +3,7 @@ import { useDebouncedCallback } from "use-debounce";
 import { FormControlLabel, Switch, Typography, Skeleton } from "@mui/material";
 
 import { BartenderOptionsState, UseBatenderOptionsStore } from "../../common";
-import { KeysMatching } from "../utils";
+import { KeysMatching, useRehydrationEffect } from "../utils";
 
 export function useSwitchControl<
   T extends KeysMatching<BartenderOptionsState, boolean>
@@ -41,6 +41,13 @@ export function useSwitchControl<
       setState(useStore.getState()[stateName]);
     }
   }, [hasHydrated]);
+
+  const rehydrationCallback = useCallback(async () => {
+    await useStore.persist.rehydrate();
+    setState(useStore.getState()[stateName]);
+  }, [useStore, stateName]);
+  useRehydrationEffect(rehydrationCallback);
+
   return [state, handleStateChange] as const;
 }
 
