@@ -1,5 +1,6 @@
 import { Resvg } from "@resvg/resvg-wasm";
 import { bartenderStore } from "./store.js";
+import { BartenderOptionsState } from "../common/store.js";
 
 export function isUrl(text: string): boolean {
   try {
@@ -74,33 +75,118 @@ export async function consoleImage(
   });
 }
 
-export function openUrl(
+export async function openUrl(
   results: DetectedBarcode[],
-  maxUrlCount = Infinity
+  {
+    changeFocus,
+    openTarget,
+    openBehavior,
+    maxUrlCount,
+  }: Pick<
+    BartenderOptionsState,
+    "changeFocus" | "openTarget" | "openBehavior" | "maxUrlCount"
+  >
 ) {
-  let tabCount = 0;
-  results.forEach((result) => {
-    const { rawValue } = result;
-    if (isUrl(rawValue)) {
-      if (tabCount < maxUrlCount) {
-        chrome.tabs.create({ url: rawValue, active: false });
-        ++tabCount;
-      }
-    }
-  });
+  if (results.length === 0) {
+    return;
+  }
+
+  // Rescheduled results
+  let rescheduledResults: typeof results;
+  switch (openBehavior) {
+    case "open-all":
+      rescheduledResults = results.slice(0);
+      break;
+    case "open-all-reverse":
+      rescheduledResults = results.slice(0).reverse();
+      break;
+    case "open-first":
+      rescheduledResults = results.slice(0, 1);
+      break;
+    case "open-last":
+      rescheduledResults = results.slice(-1);
+      break;
+    default:
+      openBehavior satisfies never;
+      return;
+  }
+
+  // URL results
+  const urlResults = rescheduledResults.filter(
+    ({ rawValue }, index) => isUrl(rawValue) && index < maxUrlCount
+  );
+
+  // open
+  switch (openTarget) {
+    case "one-tab-each":
+      urlResults.forEach(({ rawValue }) =>
+        chrome.tabs.create({ url: rawValue, active: changeFocus })
+      );
+      break;
+    case "one-window-each":
+      urlResults.forEach(({ rawValue }) =>
+        chrome.windows.create({
+          url: rawValue,
+          focused: changeFocus,
+        })
+      );
+      break;
+    case "one-window-all":
+      chrome.windows.create({
+        url: urlResults.map(({ rawValue }) => rawValue),
+        focused: changeFocus,
+      });
+      break;
+    default:
+      openTarget satisfies never;
+      return;
+  }
 }
 
-export async function copyToClipboard(contents: string[]) {
+export async function copyToClipboard(
+  results: DetectedBarcode[],
+  {
+    copyBehavior,
+    copyInterval,
+    maxCopyCount,
+  }: Pick<
+    BartenderOptionsState,
+    "copyBehavior" | "copyInterval" | "maxCopyCount"
+  >
+) {
+  if (results.length === 0) {
+    return;
+  }
   await chrome.offscreen.createDocument({
     url: "/offscreen.html",
     reasons: ["CLIPBOARD"],
     justification: "write text to the clipboard",
   });
+  let rescheduledResults: typeof results;
+  switch (copyBehavior) {
+    case "copy-all":
+      rescheduledResults = results.slice(0);
+      break;
+    case "copy-all-reverse":
+      rescheduledResults = results.slice(0).reverse();
+      break;
+    case "copy-first":
+      rescheduledResults = results.slice(0, 1);
+      break;
+    case "copy-last":
+      rescheduledResults = results.slice(-1);
+      break;
+    default:
+      copyBehavior satisfies never;
+      return;
+  }
   const message: WriteClipboardMessage = {
     type: "clipboard",
     target: "offscreen",
     payload: {
-      contents,
+      contents: rescheduledResults.map((r) => r.rawValue),
+      copyInterval,
+      maxCopyCount,
     },
   };
   await chrome.runtime.sendMessage(message);

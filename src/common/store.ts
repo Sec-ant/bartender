@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { create } from "zustand";
 import {
   StateStorage,
@@ -46,7 +47,7 @@ export const copyBehaviors = [
 
 export type CopyBehavior = typeof copyBehaviors[number];
 
-export interface BartenderOptionsPersistState {
+export interface BartenderOptionsState {
   openUrl: boolean;
   changeFocus: boolean;
   openTarget: OpenTarget;
@@ -59,24 +60,18 @@ export interface BartenderOptionsPersistState {
   maxCopyCount: number;
 }
 
-export const defaultBartenderOptionsPersistState: BartenderOptionsPersistState =
-  {
-    openUrl: true,
-    changeFocus: false,
-    openTarget: "one-tab-each",
-    openBehavior: "open-all",
-    maxUrlCount: 1000,
+export const defaultBartenderOptionsState: BartenderOptionsState = {
+  openUrl: true,
+  changeFocus: false,
+  openTarget: "one-tab-each",
+  openBehavior: "open-all",
+  maxUrlCount: 1000,
 
-    copyToClipboard: true,
-    copyBehavior: "copy-all",
-    copyInterval: 300,
-    maxCopyCount: 1000,
-  };
-
-interface BartenderOptionsState extends BartenderOptionsPersistState {
-  _hasHydrated: boolean;
-  setHasHydrated: (state: boolean) => void;
-}
+  copyToClipboard: true,
+  copyBehavior: "copy-all",
+  copyInterval: 300,
+  maxCopyCount: 1000,
+};
 
 const browserSyncStoragePersistOptions: PersistOptions<
   BartenderOptionsState,
@@ -85,26 +80,25 @@ const browserSyncStoragePersistOptions: PersistOptions<
   name: "bartender-options",
   version: 0,
   storage: createJSONStorage(() => browserSyncStorage),
-  partialize: (state) =>
-    Object.fromEntries(
-      Object.entries(state).filter(
-        ([key]) => !["_hasHydrated", "setHasHydrated"].includes(key)
-      )
-    ),
-  onRehydrateStorage: () => (state) => {
-    state?.setHasHydrated(true);
-  },
 };
 
 export const useBartenderOptionsStore = create<BartenderOptionsState>()(
-  persist(
-    (set) => ({
-      ...defaultBartenderOptionsPersistState,
-      _hasHydrated: false,
-      setHasHydrated: (hasHydrated) => {
-        set({ _hasHydrated: hasHydrated });
-      },
-    }),
-    browserSyncStoragePersistOptions
-  )
+  persist(() => defaultBartenderOptionsState, browserSyncStoragePersistOptions)
 );
+
+/**
+ * Use hydration hook
+ */
+export const useHydration = (useStore: typeof useBartenderOptionsStore) => {
+  const [hydrated, setHydrated] = useState(useStore.persist.hasHydrated());
+
+  useEffect(() => {
+    const unsub = useStore.persist.onFinishHydration(() => {
+      setHydrated(true);
+    });
+    setHydrated(useStore.persist.hasHydrated());
+    return unsub;
+  }, [useStore]);
+
+  return hydrated;
+};

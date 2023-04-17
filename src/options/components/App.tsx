@@ -1,8 +1,9 @@
 import {
   useBartenderOptionsStore,
+  useHydration,
   copyBehaviors,
   CopyBehavior,
-  BartenderOptionsPersistState,
+  BartenderOptionsState,
   OpenTarget,
   OpenBehavior,
   openTargets,
@@ -45,7 +46,7 @@ type KeysMatching<T, V> = {
 }[keyof T];
 
 function useSwitchControl<
-  T extends KeysMatching<BartenderOptionsPersistState, boolean>
+  T extends KeysMatching<BartenderOptionsState, boolean>
 >(stateName: T, hasHydrated: boolean, wait = 250) {
   const [state, setState] = useState(
     useBartenderOptionsStore.getState()[stateName]
@@ -81,7 +82,7 @@ function useSwitchControl<
 }
 
 function SwitchControl<
-  T extends KeysMatching<BartenderOptionsPersistState, boolean>
+  T extends KeysMatching<BartenderOptionsState, boolean>
 >({
   label,
   value,
@@ -90,7 +91,7 @@ function SwitchControl<
   disabled = false,
 }: {
   label: string;
-  value: BartenderOptionsPersistState[T];
+  value: BartenderOptionsState[T];
   onChange: React.ChangeEventHandler<HTMLInputElement>;
   hydrated?: boolean;
   disabled?: boolean;
@@ -121,7 +122,7 @@ function SwitchControl<
 }
 
 function useNumberControl<
-  T extends KeysMatching<BartenderOptionsPersistState, number>
+  T extends KeysMatching<BartenderOptionsState, number>
 >(
   stateName: T,
   hasHydrated: boolean,
@@ -163,7 +164,7 @@ function useNumberControl<
 }
 
 function NumberControl<
-  T extends KeysMatching<BartenderOptionsPersistState, number>
+  T extends KeysMatching<BartenderOptionsState, number>
 >({
   label,
   value,
@@ -175,7 +176,7 @@ function NumberControl<
   disabled = false,
 }: {
   label: string;
-  value: BartenderOptionsPersistState[T];
+  value: BartenderOptionsState[T];
   onChange: React.ChangeEventHandler<HTMLInputElement>;
   min?: number;
   step?: number;
@@ -220,21 +221,21 @@ function NumberControl<
 
 function useSelectControl<
   T extends KeysMatching<
-    BartenderOptionsPersistState,
+    BartenderOptionsState,
     OpenTarget | OpenBehavior | CopyBehavior
   >
 >(
   stateName: T,
   hasHydrated: boolean,
-  typecast: (s: string) => BartenderOptionsPersistState[T] = (s) =>
-    s as BartenderOptionsPersistState[T],
+  typecast: (s: string) => BartenderOptionsState[T] = (s) =>
+    s as BartenderOptionsState[T],
   wait = 250
 ) {
   const [state, setState] = useState(
     useBartenderOptionsStore.getState()[stateName]
   );
   const debounced = useDebouncedCallback(
-    (state: BartenderOptionsPersistState[T]) => {
+    (state: BartenderOptionsState[T]) => {
       useBartenderOptionsStore.setState({
         [stateName]: state,
       });
@@ -267,7 +268,7 @@ function useSelectControl<
 
 function SelectControl<
   T extends KeysMatching<
-    BartenderOptionsPersistState,
+    BartenderOptionsState,
     OpenTarget | OpenBehavior | CopyBehavior
   >
 >({
@@ -284,10 +285,10 @@ function SelectControl<
   disabled = false,
 }: {
   label: string;
-  value: BartenderOptionsPersistState[T];
+  value: BartenderOptionsState[T];
   onChange: React.ChangeEventHandler<HTMLInputElement>;
-  valueOptions: readonly BartenderOptionsPersistState[T][];
-  valueOptionMap?: (valueOption: BartenderOptionsPersistState[T]) => string;
+  valueOptions: readonly BartenderOptionsState[T][];
+  valueOptionMap?: (valueOption: BartenderOptionsState[T]) => string;
   hydrated?: boolean;
   disabled?: boolean;
 }) {
@@ -321,7 +322,7 @@ function SelectControl<
 function App() {
   const theme = useAutoTheme();
 
-  const hasHydrated = useBartenderOptionsStore((state) => state._hasHydrated);
+  const hasHydrated = useHydration(useBartenderOptionsStore);
 
   const [openUrl, handleOpenUrlChange] = useSwitchControl(
     "openUrl",

@@ -1,10 +1,6 @@
 import "@sec-ant/barcode-detector";
 
-import {
-  copyToClipboard,
-  openUrl,
-  imageUrlToImageData,
-} from "./utils.js";
+import { copyToClipboard, openUrl, imageUrlToImageData } from "./utils.js";
 import { bartenderStore } from "./store.js";
 import { useBartenderOptionsStore } from "../common/index.js";
 
@@ -34,7 +30,6 @@ function handleMessage(
   sender: chrome.runtime.MessageSender,
   sendResponse: () => void
 ): boolean | undefined {
-  console.log(message, sender);
   if (
     typeof sender.tab === "undefined" ||
     message.target !== "service-worker"
@@ -87,10 +82,34 @@ async function handleContextMenuClicked(
     y: NaN,
     imageUrlPromise: Promise.resolve(undefined),
   });
-  if (useBartenderOptionsStore.getState().openUrl) {
-    openUrl(results, useBartenderOptionsStore.getState().maxUrlCount);
+
+  const {
+    openUrl: shouldOpenUrl,
+    changeFocus,
+    openTarget,
+    openBehavior,
+    maxUrlCount,
+
+    copyToClipboard: shouldCopyToClipboard,
+    copyBehavior,
+    copyInterval,
+    maxCopyCount,
+  } = useBartenderOptionsStore.getState();
+
+  if (shouldOpenUrl) {
+    openUrl(results, {
+      changeFocus,
+      openTarget,
+      openBehavior,
+      maxUrlCount,
+    });
   }
-  if (useBartenderOptionsStore.getState().copyToClipboard) {
-    await copyToClipboard(results.map((r) => r.rawValue));
+
+  if (shouldCopyToClipboard) {
+    await copyToClipboard(results, {
+      copyBehavior,
+      copyInterval,
+      maxCopyCount,
+    });
   }
 }

@@ -22,23 +22,23 @@ function handleMessage(
 }
 
 async function handleWriteClipboardMessage({
-  payload: { contents },
-}: WriteClipboardMessage): Promise<void> {
+  payload: { contents, copyInterval, maxCopyCount },
+}: WriteClipboardMessage): Promise<unknown> {
   try {
-    const firstContent = contents.shift();
-    if (typeof firstContent === "undefined") {
-      return;
-    }
-    textareaElement.value = firstContent;
-    textareaElement.select();
-    document.execCommand("copy");
+    let copyCount = 0;
     for (const content of contents) {
-      await new Promise<void>((resolve) => setTimeout(resolve, 300));
+      if (copyCount >= maxCopyCount) {
+        window.close();
+        return;
+      }
       textareaElement.value = content;
       textareaElement.select();
       document.execCommand("copy");
+      ++copyCount;
+      await new Promise<void>((resolve) => setTimeout(resolve, copyInterval));
     }
-  } finally {
-    window.close();
+  } catch (e) {
+    return e;
   }
+  window.close();
 }

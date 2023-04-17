@@ -22,7 +22,7 @@ export function getUrlFromImageLikeElement(
     const url = getAbsoluteUrl(element.src);
     return url;
   }
-  if (isSVGElement(element)) {
+  if (isSVGSVGElement(element)) {
     const url = getAbsoluteUrl(svgToTinyDataUri(element));
     return url;
   }
@@ -55,9 +55,9 @@ export function isHTMLImageElement(
   }
 }
 
-export function isSVGElement(element: Element): element is SVGElement {
+export function isSVGSVGElement(element: Element): element is SVGSVGElement {
   try {
-    return element instanceof SVGElement;
+    return element instanceof SVGSVGElement;
   } catch {
     return false;
   }
@@ -94,12 +94,12 @@ export function svgToTinyDataUri(svg: SVGElement): string {
   };
   const specialHexDecode = (match: string) =>
     hexDecode[match] ?? match.toLowerCase();
-  let svgString = String(svg);
+  let svgString = svg.outerHTML;
   svgString.charCodeAt(0) === 0xfeff && (svgString = svgString.slice(1));
   svgString = svgString.trim().replace(reWhitespace, " ").replaceAll('"', "'");
   svgString = encodeURIComponent(svgString);
   svgString = svgString.replace(reUrlHexPairs, specialHexDecode);
-  return "data:image/svg+xml," + svg;
+  return "data:image/svg+xml," + svgString;
 }
 
 export const getAbsoluteUrl = (() => {

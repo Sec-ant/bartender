@@ -13,6 +13,8 @@ declare interface WriteClipboardMessage {
   target: "offscreen";
   payload: {
     contents: string[];
+    copyInterval: number;
+    maxCopyCount: number;
   };
 }
 
