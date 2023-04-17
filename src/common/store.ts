@@ -86,10 +86,12 @@ export const useBartenderOptionsStore = create<BartenderOptionsState>()(
   persist(() => defaultBartenderOptionsState, browserSyncStoragePersistOptions)
 );
 
+export type UseBatenderOptionsStore = typeof useBartenderOptionsStore;
+
 /**
  * Use hydration hook
  */
-export const useHydration = (useStore: typeof useBartenderOptionsStore) => {
+export const useHydration = (useStore: UseBatenderOptionsStore) => {
   const [hydrated, setHydrated] = useState(useStore.persist.hasHydrated());
 
   useEffect(() => {
