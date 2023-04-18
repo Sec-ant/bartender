@@ -1,9 +1,8 @@
-import { useState, useCallback, useEffect } from "react";
-import { useDebouncedCallback } from "use-debounce";
+import React, { useCallback, ChangeEventHandler } from "react";
 import { TextField, InputAdornment, Skeleton } from "@mui/material";
 
 import { BartenderOptionsState, UseBatenderOptionsStore } from "../../common";
-import { KeysMatching, useRehydrationEffect } from "../utils";
+import { KeysMatching, useStoreState } from "../utils";
 
 export function useNumberControl<
   T extends KeysMatching<BartenderOptionsState, number>
@@ -14,41 +13,23 @@ export function useNumberControl<
   stringToNumber: (s: string) => number = (s) => parseFloat(s),
   wait = 250
 ) {
-  const [state, setState] = useState(useStore.getState()[stateName]);
-  const debounced = useDebouncedCallback(
-    (state) => {
-      useStore.setState({
-        [stateName]: state,
-      });
-    },
-    wait,
-    {
-      trailing: true,
-    }
+  const [state, setState] = useStoreState(
+    stateName,
+    useStore,
+    hasHydrated,
+    wait
   );
-  const handleStateChange: React.ChangeEventHandler<HTMLInputElement> =
-    useCallback(
-      ({ target: { value } }) => {
-        if (hasHydrated === false) {
-          return;
-        }
-        const numericValue = stringToNumber(value);
-        setState(numericValue);
-        debounced(numericValue);
-      },
-      [debounced, hasHydrated]
-    );
-  useEffect(() => {
-    if (hasHydrated === true) {
-      setState(useStore.getState()[stateName]);
-    }
-  }, [hasHydrated]);
 
-  const rehydrationCallback = useCallback(async () => {
-    await useStore.persist.rehydrate();
-    setState(useStore.getState()[stateName]);
-  }, [useStore, stateName]);
-  useRehydrationEffect(rehydrationCallback);
+  const handleStateChange: ChangeEventHandler<HTMLInputElement> = useCallback(
+    ({ target: { value } }) => {
+      if (hasHydrated === false) {
+        return;
+      }
+      const numericValue = stringToNumber(value);
+      setState(numericValue);
+    },
+    [hasHydrated, stringToNumber, setState]
+  );
 
   return [state, handleStateChange] as const;
 }
@@ -67,7 +48,7 @@ export function NumberControl<
 }: {
   label: string;
   value: BartenderOptionsState[T];
-  onChange: React.ChangeEventHandler<HTMLInputElement>;
+  onChange: ChangeEventHandler<HTMLInputElement>;
   min?: number;
   step?: number;
   endAdornment?: string;
@@ -81,7 +62,6 @@ export function NumberControl<
       label={label}
       type="number"
       inputProps={{
-        //@ts-ignore
         ...(typeof min === "number" ? { min } : {}),
         ...(typeof step === "number" ? { step } : {}),
       }}

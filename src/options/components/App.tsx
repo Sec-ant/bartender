@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer } from "react";
+import React, { useMemo } from "react";
 import {
   CssBaseline,
   ThemeProvider,
@@ -7,6 +7,7 @@ import {
   Divider,
   Grid,
   Box,
+  Link,
 } from "@mui/material";
 
 import {
@@ -250,7 +251,11 @@ function App() {
           <Grid item xs={12}>
             <Divider />
           </Grid>
-          <Grid item xs={6}></Grid>
+          <Grid item xs={12}>
+            <Link href={window.location.href} target="_blank">
+              Open In New Tab
+            </Link>
+          </Grid>
         </Grid>
       </Box>
     </ThemeProvider>

@@ -1,9 +1,8 @@
-import { useState, useCallback, useEffect } from "react";
-import { useDebouncedCallback } from "use-debounce";
+import React, { useCallback, ChangeEventHandler } from "react";
 import { FormControlLabel, Switch, Typography, Skeleton } from "@mui/material";
 
 import { BartenderOptionsState, UseBatenderOptionsStore } from "../../common";
-import { KeysMatching, useRehydrationEffect } from "../utils";
+import { KeysMatching, useStoreState } from "../utils";
 
 export function useSwitchControl<
   T extends KeysMatching<BartenderOptionsState, boolean>
@@ -13,40 +12,22 @@ export function useSwitchControl<
   useStore: UseBatenderOptionsStore,
   wait = 250
 ) {
-  const [state, setState] = useState(useStore.getState()[stateName]);
-  const debounced = useDebouncedCallback(
-    (state) => {
-      useStore.setState({
-        [stateName]: state,
-      });
-    },
-    wait,
-    {
-      trailing: true,
-    }
+  const [state, setState] = useStoreState(
+    stateName,
+    useStore,
+    hasHydrated,
+    wait
   );
-  const handleStateChange: React.ChangeEventHandler<HTMLInputElement> =
-    useCallback(
-      ({ target: { checked } }) => {
-        if (hasHydrated === false) {
-          return;
-        }
-        setState(checked);
-        debounced(checked);
-      },
-      [debounced, hasHydrated]
-    );
-  useEffect(() => {
-    if (hasHydrated === true) {
-      setState(useStore.getState()[stateName]);
-    }
-  }, [hasHydrated]);
 
-  const rehydrationCallback = useCallback(async () => {
-    await useStore.persist.rehydrate();
-    setState(useStore.getState()[stateName]);
-  }, [useStore, stateName]);
-  useRehydrationEffect(rehydrationCallback);
+  const handleStateChange: ChangeEventHandler<HTMLInputElement> = useCallback(
+    ({ target: { checked } }) => {
+      if (hasHydrated === false) {
+        return;
+      }
+      setState(checked);
+    },
+    [hasHydrated, setState]
+  );
 
   return [state, handleStateChange] as const;
 }
@@ -62,7 +43,7 @@ export function SwitchControl<
 }: {
   label: string;
   value: BartenderOptionsState[T];
-  onChange: React.ChangeEventHandler<HTMLInputElement>;
+  onChange: ChangeEventHandler<HTMLInputElement>;
   hydrated?: boolean;
   disabled?: boolean;
 }) {

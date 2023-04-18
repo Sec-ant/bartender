@@ -1,15 +1,12 @@
-import { useState, useCallback, useEffect } from "react";
-import { useDebouncedCallback } from "use-debounce";
+import React, { useCallback, ChangeEventHandler } from "react";
 import { TextField, Skeleton } from "@mui/material";
-
-import { useRehydrationEffect } from "../utils";
 
 import {
   BartenderOptionsState,
   UseBatenderOptionsStore,
   SelectType,
 } from "../../common";
-import { KeysMatching } from "../utils";
+import { KeysMatching, useStoreState } from "../utils";
 
 export function useSelectControl<
   T extends KeysMatching<BartenderOptionsState, SelectType>
@@ -21,41 +18,23 @@ export function useSelectControl<
     s as BartenderOptionsState[T],
   wait = 250
 ) {
-  const [state, setState] = useState(useStore.getState()[stateName]);
-  const debounced = useDebouncedCallback(
-    (state: BartenderOptionsState[T]) => {
-      useStore.setState({
-        [stateName]: state,
-      });
-    },
-    wait,
-    {
-      trailing: true,
-    }
+  const [state, setState] = useStoreState(
+    stateName,
+    useStore,
+    hasHydrated,
+    wait
   );
-  const handleStateChange: React.ChangeEventHandler<HTMLInputElement> =
-    useCallback(
-      ({ target: { value } }) => {
-        if (hasHydrated === false) {
-          return;
-        }
-        const typecastedValue = typecast(value);
-        setState(typecastedValue);
-        debounced(typecastedValue);
-      },
-      [debounced, hasHydrated]
-    );
-  useEffect(() => {
-    if (hasHydrated === true) {
-      setState(useStore.getState()[stateName]);
-    }
-  }, [hasHydrated]);
 
-  const rehydrationCallback = useCallback(async () => {
-    await useStore.persist.rehydrate();
-    setState(useStore.getState()[stateName]);
-  }, [useStore, stateName]);
-  useRehydrationEffect(rehydrationCallback);
+  const handleStateChange: ChangeEventHandler<HTMLInputElement> = useCallback(
+    ({ target: { value } }) => {
+      if (hasHydrated === false) {
+        return;
+      }
+      const typecastedValue = typecast(value);
+      setState(typecastedValue);
+    },
+    [hasHydrated, typecast, setState]
+  );
 
   return [state, handleStateChange] as const;
 }
@@ -77,7 +56,7 @@ export function SelectControl<
 }: {
   label: string;
   value: BartenderOptionsState[T];
-  onChange: React.ChangeEventHandler<HTMLInputElement>;
+  onChange: ChangeEventHandler<HTMLInputElement>;
   valueOptions: readonly BartenderOptionsState[T][];
   valueOptionMap?: (valueOption: BartenderOptionsState[T]) => string;
   hydrated?: boolean;

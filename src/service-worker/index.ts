@@ -22,7 +22,7 @@ chrome.contextMenus.onClicked.addListener(handleContextMenuClicked);
 chrome.runtime.onMessage.addListener(handleMessage);
 chrome.storage.onChanged.addListener((changes, namespace) => {
   useBartenderOptionsStore.persist.rehydrate();
-  for (let [key, { oldValue, newValue }] of Object.entries(changes)) {
+  for (const [key, { oldValue, newValue }] of Object.entries(changes)) {
     console.log(
       `Storage key "${key}" in namespace "${namespace}" changed.`,
       `Old value was "${oldValue}", new value is "${newValue}".`
@@ -95,7 +95,7 @@ async function handleContextMenuClicked(
 
   const {
     detectRegion,
-    tolerance,
+    // tolerance,
 
     openUrl: shouldOpenUrl,
     changeFocus,
