@@ -1,5 +1,5 @@
 import "@sec-ant/barcode-detector";
-
+import type { Message, ContextMenuOpenedMessage } from "../common/index.js";
 import {
   copyToClipboard,
   openUrl,

@@ -36,7 +36,6 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "robust-predicates": "^3.0.1",
-    "use-debounce": "^9.0.4",
     "zustand": "^4.3.7"
   }
 }

@@ -1,4 +1,5 @@
 import { isElementVisible, getUrlFromImageLikeElement } from "./utils.js";
+import type { ContextMenuOpenedMessage } from "../common/message.js";
 
 async function handleContextMenuEvent({ clientX, clientY }: MouseEvent) {
   const elements = document.elementsFromPoint(clientX, clientY);

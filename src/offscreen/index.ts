@@ -1,3 +1,5 @@
+import type { Message, WriteClipboardMessage } from "../common/message.js";
+
 const textareaElement = document.querySelector("#text") as HTMLTextAreaElement;
 
 chrome.runtime.onMessage.addListener(handleMessage);
