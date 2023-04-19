@@ -3,16 +3,16 @@ import type { ContextMenuOpenedMessage } from "../common/message.js";
 
 async function handleContextMenuEvent({ clientX, clientY }: MouseEvent) {
   const elements = document.elementsFromPoint(clientX, clientY);
-  const clientXRelative = clientX / window.innerWidth;
-  const clientYRelative = clientY / window.innerHeight;
   const message: ContextMenuOpenedMessage = {
     type: "context-menu-opened",
     target: "service-worker",
     payload: {
-      x: clientXRelative,
-      y: clientYRelative,
-      ex: clientXRelative,
-      ey: clientYRelative,
+      x: clientX,
+      y: clientY,
+      ew: window.innerWidth,
+      eh: window.innerHeight,
+      vw: window.innerWidth,
+      vh: window.innerHeight,
       imageUrl: undefined,
     },
   };
@@ -26,8 +26,10 @@ async function handleContextMenuEvent({ clientX, clientY }: MouseEvent) {
     }
     message.payload.imageUrl = imageUrl;
     const { left, top, width, height } = element.getBoundingClientRect();
-    message.payload.ex = (clientX - left) / width;
-    message.payload.ey = (clientY - top) / height;
+    message.payload.x -= left;
+    message.payload.y -= top;
+    message.payload.ew = width;
+    message.payload.eh = height;
     await chrome.runtime.sendMessage(message);
     return;
   }

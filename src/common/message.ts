@@ -6,8 +6,10 @@ export interface ContextMenuOpenedMessage {
   payload: {
     x: number;
     y: number;
-    ex: number;
-    ey: number;
+    ew: number;
+    eh: number;
+    vw: number;
+    vh: number;
     imageUrl: string | undefined;
   };
 }

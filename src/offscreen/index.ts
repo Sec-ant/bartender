@@ -27,17 +27,13 @@ async function handleWriteClipboardMessage({
   payload: { contents, copyInterval, maxCopyCount },
 }: WriteClipboardMessage): Promise<unknown> {
   try {
-    let copyCount = 0;
-    for (const content of contents) {
-      if (copyCount >= maxCopyCount) {
-        window.close();
-        return;
+    for (let i = 0; i < Math.min(contents.length, maxCopyCount); ++i) {
+      if (i !== 0) {
+        await new Promise<void>((resolve) => setTimeout(resolve, copyInterval));
       }
-      textareaElement.value = content;
+      textareaElement.value = contents[i];
       textareaElement.select();
       document.execCommand("copy");
-      ++copyCount;
-      await new Promise<void>((resolve) => setTimeout(resolve, copyInterval));
     }
   } catch (e) {
     return e;

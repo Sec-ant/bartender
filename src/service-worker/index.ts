@@ -5,6 +5,7 @@ import {
   openUrl,
   imageUrlToImageData,
   robustPointInPolygon,
+  alterBadgeEffect,
 } from "./utils.js";
 import { bartenderStore } from "./store.js";
 import { useBartenderOptionsStore } from "../common/index.js";
@@ -20,14 +21,16 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 chrome.contextMenus.onClicked.addListener(handleContextMenuClicked);
 chrome.runtime.onMessage.addListener(handleMessage);
-chrome.storage.onChanged.addListener((changes, namespace) => {
+chrome.storage.onChanged.addListener((/* changes, namespace */) => {
   useBartenderOptionsStore.persist.rehydrate();
+  /*
   for (const [key, { oldValue, newValue }] of Object.entries(changes)) {
     console.log(
       `Storage key "${key}" in namespace "${namespace}" changed.`,
       `Old value was "${oldValue}", new value is "${newValue}".`
     );
   }
+  */
 });
 
 function handleMessage(
@@ -52,46 +55,46 @@ function handleMessage(
 }
 
 function handleContextMenuOpenedMessage({
-  payload: { x, y, ex, ey, imageUrl },
+  payload: { x, y, ew, eh, vw, vh, imageUrl },
 }: ContextMenuOpenedMessage): Promise<string | undefined> {
   let imageUrlPromise = Promise.resolve(imageUrl);
   const { detectRegion } = useBartenderOptionsStore.getState();
-  if (
-    detectRegion === "whole-page" ||
-    typeof imageUrl === "undefined" ||
-    // blob url cannot be shared to service worker
-    new URL(imageUrl).protocol === "blob:"
-  ) {
+  if (detectRegion === "whole-page" || typeof imageUrl === "undefined") {
     imageUrlPromise = chrome.tabs.captureVisibleTab(undefined, {
       format: "png",
     });
-  } else {
-    x = ex;
-    y = ey;
+    ew = vw;
+    eh = vh;
   }
-  bartenderStore.setState({ x, y, imageUrlPromise });
+  const xRatio = x / ew;
+  const yRatio = y / eh;
+  bartenderStore.setState({ xRatio, yRatio, imageUrlPromise });
   return imageUrlPromise;
 }
 
-async function handleContextMenuClicked(
-  _: chrome.contextMenus.OnClickData,
-  tab?: chrome.tabs.Tab
-) {
+async function detectBarcode(tab?: chrome.tabs.Tab) {
+  const { detectBarcodeTask: previousDetectBarcodeTask } =
+    bartenderStore.getState();
+  await previousDetectBarcodeTask;
+
+  alterBadgeEffect("busy");
+
   if (typeof tab === "undefined" || typeof tab.id === "undefined") {
+    alterBadgeEffect("complete", 0);
     return;
   }
-  const { x, y, imageUrlPromise } = bartenderStore.getState();
+
+  const { xRatio, yRatio, imageUrlPromise } = bartenderStore.getState();
   const imageUrl = await imageUrlPromise;
   if (typeof imageUrl === "undefined") {
+    alterBadgeEffect("complete", 0);
     return;
   }
+
+  console.log(imageUrl);
+
   const imageData = await imageUrlToImageData(imageUrl);
   let results = await barcodeDetector.detect(imageData);
-  bartenderStore.setState({
-    x: NaN,
-    y: NaN,
-    imageUrlPromise: Promise.resolve(undefined),
-  });
 
   const {
     detectRegion,
@@ -114,10 +117,14 @@ async function handleContextMenuClicked(
       ({ cornerPoints }) =>
         robustPointInPolygon(
           cornerPoints.map(({ x, y }) => [x, y] as const),
-          [x * imageData.width, y * imageData.height]
+          [xRatio * imageData.width, yRatio * imageData.height]
         ) < 1
     );
   }
+
+  const numOfResults = results.length;
+
+  alterBadgeEffect("intermediate", numOfResults);
 
   if (shouldOpenUrl) {
     openUrl(results, {
@@ -135,4 +142,13 @@ async function handleContextMenuClicked(
       maxCopyCount,
     });
   }
+
+  alterBadgeEffect("complete", numOfResults);
+}
+
+function handleContextMenuClicked(
+  _: chrome.contextMenus.OnClickData,
+  tab?: chrome.tabs.Tab
+) {
+  bartenderStore.setState({ detectBarcodeTask: detectBarcode(tab) });
 }

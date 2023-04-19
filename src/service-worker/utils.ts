@@ -3,6 +3,7 @@ import { orient2dfast as orient } from "robust-predicates";
 import type { WriteClipboardMessage } from "../common/message.js";
 import { bartenderStore } from "./store.js";
 import { BartenderOptionsState } from "../common/store.js";
+import { assertNever } from "assert-never";
 
 export function isUrl(text: string): boolean {
   try {
@@ -30,7 +31,7 @@ export async function imageUrlToImageData(imageUrl: string) {
   let imageBlob = await resp.blob();
   if (imageBlob.type === "image/svg+xml") {
     const svgUint8Array = new Uint8Array(await imageBlob.arrayBuffer());
-    await bartenderStore.getState().resvgWasmPromise;
+    await bartenderStore.getState().loadResvgTask;
     const resvgJS = new Resvg(svgUint8Array);
     const pngData = resvgJS.render();
     const pngBuffer = pngData.asPng();
@@ -118,8 +119,7 @@ export async function openUrl(
       rescheduledResults = results.slice(-1);
       break;
     default:
-      openBehavior satisfies never;
-      return;
+      return assertNever(openBehavior);
   }
 
   // URL results
@@ -149,8 +149,7 @@ export async function openUrl(
       });
       break;
     default:
-      openTarget satisfies never;
-      return;
+      return assertNever(openTarget);
   }
 }
 
@@ -188,8 +187,7 @@ export async function copyToClipboard(
       rescheduledResults = results.slice(-1);
       break;
     default:
-      copyBehavior satisfies never;
-      return;
+      return assertNever(copyBehavior);
   }
   const message: WriteClipboardMessage = {
     type: "clipboard",
@@ -286,3 +284,71 @@ export function robustPointInPolygon(
   }
   return (2 * inside - 1) as -1 | 1;
 }
+
+export async function setBadge({
+  backgroundColor,
+  text,
+  textColor = "#ffffff",
+  promise = Promise.resolve(),
+}: {
+  backgroundColor?: string;
+  text: string;
+  textColor?: string;
+  promise?: Promise<unknown>;
+}) {
+  await promise;
+  return Promise.allSettled([
+    ...(backgroundColor
+      ? [
+          chrome.action.setBadgeBackgroundColor({
+            color: backgroundColor,
+          }),
+        ]
+      : []),
+    chrome.action.setBadgeText({
+      text: text,
+    }),
+    chrome.action.setBadgeTextColor({
+      color: textColor,
+    }),
+  ]);
+}
+
+export type BadgeType = "busy" | "intermediate" | "complete" | "clear";
+
+export const alterBadgeEffect = (() => {
+  let alterBadgeEffectTask: Promise<unknown> = Promise.resolve();
+  return (type: BadgeType, num = 0) => {
+    switch (type) {
+      case "busy":
+        alterBadgeEffectTask = setBadge({
+          backgroundColor: "#ffc107",
+          text: "...",
+          promise: alterBadgeEffectTask,
+        });
+        break;
+      case "intermediate":
+        alterBadgeEffectTask = setBadge({
+          backgroundColor: "#ffc107",
+          text: num.toString(10),
+          promise: alterBadgeEffectTask,
+        });
+        break;
+      case "complete":
+        alterBadgeEffectTask = setBadge({
+          backgroundColor: num > 0 ? "#4caf50" : "#f44336",
+          text: num.toString(10),
+          promise: alterBadgeEffectTask,
+        });
+        break;
+      case "clear":
+        alterBadgeEffectTask = setBadge({
+          text: "",
+          promise: alterBadgeEffectTask,
+        });
+        break;
+      default:
+        return assertNever(type);
+    }
+  };
+})();

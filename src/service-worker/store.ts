@@ -2,19 +2,21 @@ import { createStore } from "zustand/vanilla";
 import { initWasm as initResvgWasm } from "@resvg/resvg-wasm";
 
 interface BartenderState {
-  x: number;
-  y: number;
+  xRatio: number;
+  yRatio: number;
   imageUrlPromise: Promise<string | undefined>;
-  resvgWasmPromise: Promise<void>;
+  loadResvgTask: Promise<void>;
+  detectBarcodeTask: Promise<unknown>;
 }
 
 export const bartenderStore = createStore<BartenderState>()(() => ({
-  x: NaN,
-  y: NaN,
+  xRatio: NaN,
+  yRatio: NaN,
   imageUrlPromise: Promise.resolve(undefined),
-  resvgWasmPromise: initResvgWasm(
+  loadResvgTask: initResvgWasm(
     fetch(
       `https://cdn.jsdelivr.net/npm/@resvg/resvg-wasm@${__RESVG_WASM_VERSION__}/index_bg.wasm`
     )
   ),
+  detectBarcodeTask: Promise.resolve(),
 }));
