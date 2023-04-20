@@ -1,11 +1,9 @@
 {
-  "extends": "./tsconfig.settings.json",
+  "extends": "./tsconfig.web.json",
   "compilerOptions": {
     "composite": true,
-    "module": "ESNext",
-    "moduleResolution": "Node",
-    "allowSyntheticDefaultImports": true,
-    "resolveJsonModule": true
+    "types": ["node"],
+    "moduleResolution": "Node"
   },
   "include": ["vite.config.ts", "package-lock.json"]
 }

@@ -16,7 +16,16 @@ chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: "bartender",
     title: "Bartender",
-    contexts: ["all"],
+    contexts: [
+      "page",
+      "frame",
+      "selection",
+      "link",
+      "editable",
+      "image",
+      "video",
+      "audio",
+    ],
   });
 });
 chrome.contextMenus.onClicked.addListener(handleContextMenuClicked);
@@ -60,7 +69,7 @@ function handleContextMenuOpenedMessage({
   let imageUrlPromise = Promise.resolve(imageUrl);
   const { detectRegion } = useBartenderOptionsStore.getState();
   if (detectRegion === "whole-page" || typeof imageUrl === "undefined") {
-    imageUrlPromise = chrome.tabs.captureVisibleTab(undefined, {
+    imageUrlPromise = chrome.tabs.captureVisibleTab({
       format: "png",
     });
     ew = vw;

@@ -169,7 +169,7 @@ export async function copyToClipboard(
   }
   await chrome.offscreen.createDocument({
     url: "/offscreen.html",
-    reasons: ["CLIPBOARD"],
+    reasons: [chrome.offscreen.Reason.CLIPBOARD],
     justification: "write text to the clipboard",
   });
   let rescheduledResults: typeof results;
@@ -289,14 +289,26 @@ export async function setBadge({
   backgroundColor,
   text,
   textColor = "#ffffff",
-  promise = Promise.resolve(),
+  promise = Promise.resolve(
+    setTimeout(() => {
+      /* void */
+    }, 0)
+  ),
+  timeoutArgs = [
+    () => {
+      /* void */
+    },
+    0,
+  ],
 }: {
   backgroundColor?: string;
   text: string;
   textColor?: string;
-  promise?: Promise<unknown>;
+  promise?: Promise<ReturnType<typeof setTimeout>>;
+  timeoutArgs?: Parameters<typeof setTimeout>;
 }) {
-  await promise;
+  const timeoutId = await promise;
+  clearTimeout(timeoutId);
   return Promise.allSettled([
     ...(backgroundColor
       ? [
@@ -311,41 +323,51 @@ export async function setBadge({
     chrome.action.setBadgeTextColor({
       color: textColor,
     }),
-  ]);
+  ]).then(() => setTimeout(...timeoutArgs));
 }
 
 export type BadgeType = "busy" | "intermediate" | "complete" | "clear";
 
 export const alterBadgeEffect = (() => {
-  let alterBadgeEffectTask: Promise<unknown> = Promise.resolve();
-  return (type: BadgeType, num = 0) => {
+  let alterBadgeEffectTask = Promise.resolve(
+    setTimeout(() => {
+      /* void */
+    }, 0)
+  );
+  return async (type: BadgeType, num = 0, wait = 10000) => {
     switch (type) {
       case "busy":
-        alterBadgeEffectTask = setBadge({
+        await (alterBadgeEffectTask = setBadge({
           backgroundColor: "#ffc107",
           text: "...",
           promise: alterBadgeEffectTask,
-        });
+        }));
         break;
       case "intermediate":
-        alterBadgeEffectTask = setBadge({
+        await (alterBadgeEffectTask = setBadge({
           backgroundColor: "#ffc107",
           text: num.toString(10),
           promise: alterBadgeEffectTask,
-        });
+        }));
         break;
       case "complete":
-        alterBadgeEffectTask = setBadge({
+        await (alterBadgeEffectTask = setBadge({
           backgroundColor: num > 0 ? "#4caf50" : "#f44336",
           text: num.toString(10),
           promise: alterBadgeEffectTask,
-        });
+          timeoutArgs: [
+            () => {
+              alterBadgeEffect("clear");
+            },
+            wait,
+          ],
+        }));
         break;
       case "clear":
-        alterBadgeEffectTask = setBadge({
+        await (alterBadgeEffectTask = setBadge({
           text: "",
           promise: alterBadgeEffectTask,
-        });
+        }));
         break;
       default:
         return assertNever(type);

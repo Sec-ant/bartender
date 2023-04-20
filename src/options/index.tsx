@@ -1,5 +1,3 @@
-/// <reference types="../types/index.d.ts"/>
-/// <reference types="../types/vite-env.d.ts"/>
 import React from "react";
 import ReactDOM from "react-dom/client";
 
