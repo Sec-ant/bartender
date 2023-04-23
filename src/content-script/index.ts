@@ -1,7 +1,7 @@
 import { isElementVisible, getUrlFromImageLikeElement } from "./utils.js";
 import type { ContextMenuOpenedMessage } from "../common/message.js";
 
-async function handleContextMenuEvent({ clientX, clientY }: MouseEvent) {
+async function sendImageInfo(clientX: number, clientY: number) {
   const elements = document.elementsFromPoint(clientX, clientY);
   const message: ContextMenuOpenedMessage = {
     type: "context-menu-opened",
@@ -35,5 +35,13 @@ async function handleContextMenuEvent({ clientX, clientY }: MouseEvent) {
   }
   await chrome.runtime.sendMessage(message);
 }
+
+const handleContextMenuEvent = (() => {
+  let sendImageInfoTask = Promise.resolve();
+  return async ({ clientX, clientY }: MouseEvent) => {
+    await sendImageInfoTask;
+    sendImageInfoTask = sendImageInfo(clientX, clientY);
+  };
+})();
 
 window.addEventListener("contextmenu", handleContextMenuEvent);

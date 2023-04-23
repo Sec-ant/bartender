@@ -2,7 +2,11 @@ import React, { useCallback, ChangeEventHandler } from "react";
 import { TextField, InputAdornment, Skeleton } from "@mui/material";
 
 import { BartenderOptionsState, UseBatenderOptionsStore } from "../../common";
-import { KeysMatching, useStoreState } from "../utils";
+import {
+  KeysMatching,
+  useStoreState,
+  useStopWheelPropagationCallbackRef,
+} from "../utils";
 
 export function useNumberControl<
   T extends KeysMatching<BartenderOptionsState, number>
@@ -55,12 +59,15 @@ export function NumberControl<
   hydrated?: boolean;
   disabled?: boolean;
 }) {
+  const callbackRef = useStopWheelPropagationCallbackRef<HTMLInputElement>();
+
   return hydrated ? (
     <TextField
       fullWidth
       size="small"
       label={label}
       type="number"
+      ref={callbackRef}
       inputProps={{
         ...(typeof min === "number" ? { min } : {}),
         ...(typeof step === "number" ? { step } : {}),

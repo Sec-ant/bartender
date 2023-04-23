@@ -47,7 +47,6 @@ export default defineConfig({
   ],
   define: {
     "process.env.NODE_ENV": JSON.stringify("production"),
-    "process.env": process.env,
     __RESVG_WASM_VERSION__: JSON.stringify(
       packages["node_modules/@resvg/resvg-wasm"].version
     ),

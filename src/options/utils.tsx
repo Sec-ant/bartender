@@ -2,6 +2,7 @@ import {
   useState,
   useEffect,
   useMemo,
+  useRef,
   useCallback,
   Dispatch,
   SetStateAction,
@@ -18,6 +19,27 @@ import {
 export type KeysMatching<T, V> = {
   [K in keyof T]-?: T[K] extends V ? K : never;
 }[keyof T];
+
+export function useSetStateWithMessage<T extends keyof BartenderOptionsState>(
+  stateName: T,
+  setState: Dispatch<SetStateAction<BartenderOptionsState[T]>>
+) {
+  return useCallback(
+    (state: BartenderOptionsState[T]) => {
+      const message: StateUpdateMessage<T> = {
+        type: "state-update",
+        target: "options",
+        payload: {
+          stateName,
+          state,
+        },
+      };
+      chrome.runtime.sendMessage(message);
+      return setState(state);
+    },
+    [stateName, setState]
+  );
+}
 
 export function useStoreState<T extends keyof BartenderOptionsState>(
   stateName: T,
@@ -50,36 +72,23 @@ export function useStoreState<T extends keyof BartenderOptionsState>(
     debouncedSetStore(state);
   }, [debouncedSetStore, state]);
 
-  useStateMessageSync(stateName, state, setState);
+  const setStateAndSendMessage = useMessageSyncState(stateName, setState);
 
   useEffect(() => {
     if (hasHydrated === true) {
-      setState(useStore.getState()[stateName]);
+      setStateAndSendMessage(useStore.getState()[stateName]);
     }
-  }, [hasHydrated, useStore, stateName]);
+  }, [hasHydrated, setStateAndSendMessage, useStore, stateName]);
 
-  return [state, setState] as const;
+  return [state, setStateAndSendMessage] as const;
 }
 
-function useStateMessageSync<T extends keyof BartenderOptionsState>(
+function useMessageSyncState<T extends keyof BartenderOptionsState>(
   stateName: T,
-  state: BartenderOptionsState[T],
   setState: Dispatch<SetStateAction<BartenderOptionsState[T]>>
 ) {
-  useEffect(() => {
-    const message: StateUpdateMessage<T> = {
-      type: "state-update",
-      target: "options",
-      payload: {
-        stateName,
-        state,
-      },
-    };
-    chrome.runtime.sendMessage(message);
-  }, [stateName, state]);
-
   const handleStateUpdateMessage = useCallback(
-    ({
+    async ({
       payload: { state, stateName: incomingStateName },
     }: StateUpdateMessage<T>) => {
       if (incomingStateName === stateName) {
@@ -120,4 +129,58 @@ function useStateMessageSync<T extends keyof BartenderOptionsState>(
       chrome.runtime.onMessage.removeListener(handleMessage);
     };
   }, [handleMessage]);
+
+  return useCallback(
+    (state: BartenderOptionsState[T]) => {
+      setState(state);
+      const message: StateUpdateMessage<T> = {
+        type: "state-update",
+        target: "options",
+        payload: {
+          stateName,
+          state,
+        },
+      };
+      chrome.runtime.sendMessage(message);
+    },
+    [setState, stateName]
+  );
+}
+
+export function useCallbackRef<T, CB extends (() => unknown) | void>(
+  rawCallback: (node: T) => CB
+) {
+  const cleanUpRef = useRef<CB | null>(null);
+  return useCallback(
+    (node: T | null) => {
+      if (cleanUpRef.current) {
+        cleanUpRef.current();
+        cleanUpRef.current = null;
+      }
+      if (node) {
+        cleanUpRef.current = rawCallback(node);
+      }
+    },
+    [rawCallback]
+  );
+}
+
+export function useStopWheelPropagationCallbackRef<
+  T extends HTMLElement = HTMLElement
+>() {
+  const handleWheel = useCallback((e: WheelEvent) => {
+    e.stopPropagation();
+  }, []);
+  const callbackRef = useCallbackRef(
+    useCallback(
+      (htmlElement: T) => {
+        htmlElement.addEventListener("wheel", handleWheel);
+        return () => {
+          htmlElement.removeEventListener("wheel", handleWheel);
+        };
+      },
+      [handleWheel]
+    )
+  );
+  return callbackRef;
 }

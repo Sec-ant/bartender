@@ -55,7 +55,10 @@ function handleMessage(
   }
   switch (message.type) {
     case "context-menu-opened":
-      handleContextMenuOpenedMessage(message).then(sendResponse);
+      {
+        handleContextMenuOpenedMessage(message);
+        sendResponse();
+      }
       break;
     default:
       sendResponse();
@@ -65,20 +68,54 @@ function handleMessage(
 
 function handleContextMenuOpenedMessage({
   payload: { x, y, ew, eh, vw, vh, imageUrl },
-}: ContextMenuOpenedMessage): Promise<string | undefined> {
-  let imageUrlPromise = Promise.resolve(imageUrl);
-  const { detectRegion } = useBartenderOptionsStore.getState();
-  if (detectRegion === "whole-page" || typeof imageUrl === "undefined") {
-    imageUrlPromise = chrome.tabs.captureVisibleTab({
-      format: "png",
-    });
+}: ContextMenuOpenedMessage) {
+  let getImageData = imageUrl
+    ? async () => await imageUrlToImageData(imageUrl)
+    : async () => undefined;
+
+  const { detectRegion, fallbackToUnderCursor, tolerance } =
+    useBartenderOptionsStore.getState();
+
+  let finalizedDetectRegion = detectRegion;
+
+  if (detectRegion === "whole-page") {
+    getImageData = async () =>
+      await imageUrlToImageData(
+        await chrome.tabs.captureVisibleTab({
+          format: "png",
+        })
+      );
     ew = vw;
     eh = vh;
+  } else if (
+    typeof imageUrl === "undefined" &&
+    detectRegion === "dom-element" &&
+    fallbackToUnderCursor
+  ) {
+    getImageData = async () =>
+      await imageUrlToImageData(
+        await chrome.tabs.captureVisibleTab({
+          format: "png",
+        }),
+        vw,
+        vh
+      );
+    ew = vw;
+    eh = vh;
+    finalizedDetectRegion = "under-cursor";
   }
+
   const xRatio = x / ew;
   const yRatio = y / eh;
-  bartenderStore.setState({ xRatio, yRatio, imageUrlPromise });
-  return imageUrlPromise;
+  const toleranceRatio = tolerance / ew;
+
+  bartenderStore.setState({
+    xRatio,
+    yRatio,
+    toleranceRatio,
+    finalizedDetectRegion,
+    getImageData,
+  });
 }
 
 async function detectBarcode(tab?: chrome.tabs.Tab) {
@@ -93,22 +130,24 @@ async function detectBarcode(tab?: chrome.tabs.Tab) {
     return;
   }
 
-  const { xRatio, yRatio, imageUrlPromise } = bartenderStore.getState();
-  const imageUrl = await imageUrlPromise;
-  if (typeof imageUrl === "undefined") {
+  const {
+    xRatio,
+    yRatio,
+    toleranceRatio,
+    getImageData,
+    finalizedDetectRegion,
+  } = bartenderStore.getState();
+
+  const imageData = await getImageData();
+
+  if (typeof imageData === "undefined") {
     alterBadgeEffect("complete", 0);
     return;
   }
 
-  console.log(imageUrl);
-
-  const imageData = await imageUrlToImageData(imageUrl);
   let results = await barcodeDetector.detect(imageData);
 
   const {
-    detectRegion,
-    // tolerance,
-
     openUrl: shouldOpenUrl,
     changeFocus,
     openTarget,
@@ -121,14 +160,46 @@ async function detectBarcode(tab?: chrome.tabs.Tab) {
     maxCopyCount,
   } = useBartenderOptionsStore.getState();
 
-  if (detectRegion === "under-cursor") {
-    results = results.filter(
-      ({ cornerPoints }) =>
-        robustPointInPolygon(
-          cornerPoints.map(({ x, y }) => [x, y] as const),
-          [xRatio * imageData.width, yRatio * imageData.height]
-        ) < 1
-    );
+  if (finalizedDetectRegion === "under-cursor") {
+    results = results.filter(({ cornerPoints }) => {
+      const cornerPointsCount = cornerPoints.length;
+      const polygonPoints: [number, number][] = [];
+
+      let centroidX = 0;
+      let centroidY = 0;
+
+      for (let i = 0; i < cornerPointsCount; ++i) {
+        const cornerPointX = cornerPoints[i].x;
+        const cornerPointY = cornerPoints[i].y;
+        polygonPoints.push([cornerPointX, cornerPointY]);
+        centroidX += cornerPointX;
+        centroidY += cornerPointY;
+      }
+
+      centroidX /= cornerPointsCount;
+      centroidY /= cornerPointsCount;
+
+      const mouseX = xRatio * imageData.width;
+      const mouseY = yRatio * imageData.height;
+      const tolerance = toleranceRatio * imageData.width;
+
+      const distanceX = mouseX - centroidX;
+      const distanceY = mouseY - centroidY;
+
+      const distance = Math.sqrt(
+        Math.pow(distanceX, 2) + Math.pow(distanceY, 2)
+      );
+      const adjustedDistance = Math.max(distance - tolerance, 0);
+      const distanceMultiplier = adjustedDistance / distance;
+
+      const adjustedMouseX = centroidX + distanceX * distanceMultiplier;
+      const adjustedMouseY = centroidY + distanceY * distanceMultiplier;
+
+      return (
+        robustPointInPolygon(polygonPoints, [adjustedMouseX, adjustedMouseY]) <
+        1
+      );
+    });
   }
 
   const numOfResults = results.length;

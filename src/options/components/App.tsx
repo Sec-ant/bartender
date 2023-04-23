@@ -47,6 +47,13 @@ function App() {
     useBartenderOptionsStore
   );
 
+  const [fallbackToUnderCursor, handleFallbackToUnderCursorChange] =
+    useSwitchControl(
+      "fallbackToUnderCursor",
+      hasHydrated,
+      useBartenderOptionsStore
+    );
+
   const [tolerance, handleToleranceChange] = useNumberControl(
     "tolerance",
     hasHydrated,
@@ -120,7 +127,7 @@ function App() {
           margin: 2,
         }}
       >
-        <Grid container spacing={1} alignItems={"center"}>
+        <Grid container spacing={2} alignItems={"center"}>
           <Grid item xs={6}>
             <SelectControl
               label="Detect Region"
@@ -131,13 +138,27 @@ function App() {
             />
           </Grid>
           <Grid item xs={6}>
+            <SwitchControl
+              label="Fallback To Under Cursor"
+              value={fallbackToUnderCursor}
+              onChange={handleFallbackToUnderCursorChange}
+              hydrated={hasHydrated}
+              disabled={!(detectRegion === "dom-element")}
+            />
+          </Grid>
+          <Grid item xs={6}>
             <NumberControl
-              label="Tolerance"
+              label="Cursor Position Tolerance"
               value={tolerance}
               onChange={handleToleranceChange}
               step={1}
               endAdornment="px"
-              disabled={detectRegion !== "under-cursor"}
+              disabled={
+                !(
+                  detectRegion === "under-cursor" ||
+                  (detectRegion === "dom-element" && fallbackToUnderCursor)
+                )
+              }
               hydrated={hasHydrated}
             />
           </Grid>

@@ -23,7 +23,11 @@ export function isUrl(text: string): boolean {
   }
 }
 
-export async function imageUrlToImageData(imageUrl: string) {
+export async function imageUrlToImageData(
+  imageUrl: string,
+  width?: number,
+  height?: number
+) {
   const resp = await fetch(imageUrl);
   if (!resp.ok) {
     throw new Error(`Failed to request the image: ${imageUrl}`);
@@ -40,7 +44,8 @@ export async function imageUrlToImageData(imageUrl: string) {
   }
   // consoleImage(imageBlob);
   const imageBitmap = await createImageBitmap(imageBlob);
-  const { width, height } = imageBitmap;
+  width ??= imageBitmap.width;
+  height ??= imageBitmap.height;
   const canvas = new OffscreenCanvas(width, height);
   const context = canvas.getContext("2d") as OffscreenCanvasRenderingContext2D;
   context.drawImage(imageBitmap, 0, 0, width, height);

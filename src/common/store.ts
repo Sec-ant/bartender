@@ -67,6 +67,7 @@ export type SelectType =
 
 export interface BartenderOptionsState {
   detectRegion: DetectRegion;
+  fallbackToUnderCursor: boolean;
   tolerance: number;
 
   openUrl: boolean;
@@ -83,6 +84,7 @@ export interface BartenderOptionsState {
 
 export const defaultBartenderOptionsState: BartenderOptionsState = {
   detectRegion: "dom-element",
+  fallbackToUnderCursor: true,
   tolerance: 0,
 
   openUrl: true,
