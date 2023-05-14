@@ -5,19 +5,35 @@ import { bartenderStore } from "./store.js";
 import { BartenderOptionsState } from "../common/store.js";
 import { assertNever } from "assert-never";
 
-export function isUrl(text: string): boolean {
+export function isUrl(
+  text: string,
+  {
+    urlSchemeWhitelist = [],
+    urlSchemeBlacklist = [],
+  }: {
+    urlSchemeWhitelist?: string[];
+    urlSchemeBlacklist?: string[];
+  } = {
+    urlSchemeWhitelist: [],
+    urlSchemeBlacklist: [],
+  }
+): boolean {
   try {
     const url = new URL(text);
-    const schemes = [
-      "http",
-      "https",
-      "data",
-      "blob",
-      "javascript",
-      "about",
-      "mailto",
-    ];
-    return schemes.includes(url.protocol.match(/.+(?=:$)/)?.[0] || "");
+
+    let whitelist = true;
+    let schemes: string[] = [];
+
+    if (urlSchemeWhitelist.length === 0) {
+      whitelist = false;
+      schemes = urlSchemeBlacklist;
+    } else {
+      schemes = urlSchemeWhitelist;
+    }
+
+    return (
+      whitelist === schemes.includes(url.protocol.match(/.+(?=:$)/)?.[0] || "")
+    );
   } catch {
     return false;
   }
@@ -95,13 +111,20 @@ export async function consoleImage(
 export async function openUrl(
   results: DetectedBarcode[],
   {
+    urlSchemeWhitelist,
+    urlSchemeBlacklist,
     changeFocus,
     openTarget,
     openBehavior,
     maxUrlCount,
   }: Pick<
     BartenderOptionsState,
-    "changeFocus" | "openTarget" | "openBehavior" | "maxUrlCount"
+    | "urlSchemeWhitelist"
+    | "urlSchemeBlacklist"
+    | "changeFocus"
+    | "openTarget"
+    | "openBehavior"
+    | "maxUrlCount"
   >
 ) {
   if (results.length === 0) {
@@ -129,7 +152,11 @@ export async function openUrl(
 
   // URL results
   const urlResults = rescheduledResults.filter(
-    ({ rawValue }, index) => isUrl(rawValue) && index < maxUrlCount
+    ({ rawValue }, index) =>
+      isUrl(rawValue, {
+        urlSchemeWhitelist,
+        urlSchemeBlacklist,
+      }) && index < maxUrlCount
   );
 
   // open

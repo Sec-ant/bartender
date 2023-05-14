@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   CssBaseline,
   ThemeProvider,
@@ -17,16 +17,32 @@ import {
   openTargets,
   openBehaviors,
   detectRegions,
+  commonURLSchemes as commonUrlSchemes,
 } from "../../common";
 import { useSwitchControl, SwitchControl } from "./SwitchControl";
 import { useNumberControl, NumberControl } from "./NumberControl";
 import { useSelectControl, SelectControl } from "./SelectControl";
+import {
+  Consolidate,
+  useEditableMultiSelectControl,
+  EditableMultiSelectControl,
+} from "./EditableMultiSelectControl";
 
 function useAutoTheme() {
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
   const theme = useMemo(
     () =>
       createTheme({
+        components: {
+          MuiCssBaseline: {
+            styleOverrides: {
+              html: {
+                overflowY: "auto",
+                scrollbarGutter: "stable",
+              },
+            },
+          },
+        },
         palette: {
           mode: prefersDarkMode ? "dark" : "light",
         },
@@ -65,6 +81,49 @@ function App() {
     "openUrl",
     hasHydrated,
     useBartenderOptionsStore
+  );
+
+  const consolidateUrlSchemes = useCallback<Consolidate>(
+    (prevState, inputValue) => {
+      const matchResults = inputValue.matchAll(
+        /([a-z](?:[a-z]|\d|\+|-|\.)*)([^a-z]*)/gi
+      );
+      let newInputValue = "";
+      for (const [, scheme, delimiter] of matchResults) {
+        if (delimiter) {
+          prevState.push(scheme.toLowerCase());
+        } else {
+          newInputValue = scheme.toLowerCase();
+        }
+      }
+      const newState = [...new Set(prevState)];
+      return [newState, newInputValue];
+    },
+    []
+  );
+
+  const [
+    urlSchemeWhitelist,
+    handleUrlSchemeWhitelistChange,
+    urlSchemeWhitelistInputValue,
+    handleUrlSchemeWhitelistInputChange,
+  ] = useEditableMultiSelectControl(
+    "urlSchemeWhitelist",
+    hasHydrated,
+    useBartenderOptionsStore,
+    consolidateUrlSchemes
+  );
+
+  const [
+    urlSchemeBlacklist,
+    handleUrlSchemeBlacklistChange,
+    urlSchemeBlacklistInputValue,
+    handleUrlSchemeBlacklistInputChange,
+  ] = useEditableMultiSelectControl(
+    "urlSchemeBlacklist",
+    hasHydrated,
+    useBartenderOptionsStore,
+    consolidateUrlSchemes
   );
 
   const [changeFocus, handleChangeFocusChange] = useSwitchControl(
@@ -124,7 +183,9 @@ function App() {
       <Box
         component="div"
         sx={{
-          margin: 2,
+          marginLeft: 2,
+          marginTop: 2,
+          marginBottom: 2,
         }}
       >
         <Grid container spacing={2} alignItems={"center"}>
@@ -170,6 +231,31 @@ function App() {
               label="Auto open URL"
               value={openUrl}
               onChange={handleOpenUrlChange}
+              hydrated={hasHydrated}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <EditableMultiSelectControl
+              label="URL Scheme Whitelist"
+              placeholder="*"
+              valueOptions={commonUrlSchemes}
+              value={urlSchemeWhitelist}
+              onChange={handleUrlSchemeWhitelistChange}
+              inputValue={urlSchemeWhitelistInputValue}
+              onInputChange={handleUrlSchemeWhitelistInputChange}
+              disabled={!openUrl}
+              hydrated={hasHydrated}
+            />
+          </Grid>
+          <Grid item xs={6}>
+            <EditableMultiSelectControl
+              label="URL Scheme Blacklist"
+              valueOptions={commonUrlSchemes}
+              value={urlSchemeBlacklist}
+              onChange={handleUrlSchemeBlacklistChange}
+              inputValue={urlSchemeBlacklistInputValue}
+              onInputChange={handleUrlSchemeBlacklistInputChange}
+              disabled={!openUrl || urlSchemeWhitelist.length > 0}
               hydrated={hasHydrated}
             />
           </Grid>

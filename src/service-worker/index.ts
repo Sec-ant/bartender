@@ -30,16 +30,14 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 chrome.contextMenus.onClicked.addListener(handleContextMenuClicked);
 chrome.runtime.onMessage.addListener(handleMessage);
-chrome.storage.onChanged.addListener((/* changes, namespace */) => {
+chrome.storage.onChanged.addListener((changes, namespace) => {
   useBartenderOptionsStore.persist.rehydrate();
-  /*
   for (const [key, { oldValue, newValue }] of Object.entries(changes)) {
     console.log(
       `Storage key "${key}" in namespace "${namespace}" changed.`,
       `Old value was "${oldValue}", new value is "${newValue}".`
     );
   }
-  */
 });
 
 function handleMessage(
@@ -149,6 +147,8 @@ async function detectBarcode(tab?: chrome.tabs.Tab) {
 
   const {
     openUrl: shouldOpenUrl,
+    urlSchemeWhitelist,
+    urlSchemeBlacklist,
     changeFocus,
     openTarget,
     openBehavior,
@@ -208,6 +208,8 @@ async function detectBarcode(tab?: chrome.tabs.Tab) {
 
   if (shouldOpenUrl) {
     openUrl(results, {
+      urlSchemeWhitelist,
+      urlSchemeBlacklist,
       changeFocus,
       openTarget,
       openBehavior,

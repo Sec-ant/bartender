@@ -25,13 +25,53 @@ const browserSyncStorage: StateStorage = {
   },
 };
 
+export const defaultUrlSchemeWhitelist = [
+  "about",
+  "blob",
+  "data",
+  "file",
+  "ftp",
+  "http",
+  "https",
+  "javascript",
+  "ws",
+  "wss",
+];
+
+export const defaultUrlSchemeBlacklist = [];
+
+export const commonURLSchemes = [
+  ...defaultUrlSchemeWhitelist,
+  "content",
+  "cid",
+  "ipfs",
+  "ipns",
+  "magnet",
+  "mailto",
+  "sftp",
+  "smb",
+  "socks5",
+  "ssh",
+  "tel",
+  "view-source",
+  "webcal",
+  "devtools",
+  "chrome",
+  "chrome-extension",
+  "edge",
+  "extension",
+  "moz-extension",
+  "brave",
+  "opera",
+];
+
 export const detectRegions = [
   "dom-element",
   "whole-page",
   "under-cursor",
 ] as const;
 
-export type DetectRegion = typeof detectRegions[number];
+export type DetectRegion = (typeof detectRegions)[number];
 
 export const openTargets = [
   "one-tab-each",
@@ -39,7 +79,7 @@ export const openTargets = [
   "one-window-all",
 ] as const;
 
-export type OpenTarget = typeof openTargets[number];
+export type OpenTarget = (typeof openTargets)[number];
 
 export const openBehaviors = [
   "open-first",
@@ -48,7 +88,7 @@ export const openBehaviors = [
   "open-all-reverse",
 ] as const;
 
-export type OpenBehavior = typeof openBehaviors[number];
+export type OpenBehavior = (typeof openBehaviors)[number];
 
 export const copyBehaviors = [
   "copy-first",
@@ -57,7 +97,7 @@ export const copyBehaviors = [
   "copy-all-reverse",
 ] as const;
 
-export type CopyBehavior = typeof copyBehaviors[number];
+export type CopyBehavior = (typeof copyBehaviors)[number];
 
 export type SelectType =
   | DetectRegion
@@ -71,6 +111,8 @@ export interface BartenderOptionsState {
   tolerance: number;
 
   openUrl: boolean;
+  urlSchemeWhitelist: string[];
+  urlSchemeBlacklist: string[];
   changeFocus: boolean;
   openTarget: OpenTarget;
   openBehavior: OpenBehavior;
@@ -88,6 +130,8 @@ export const defaultBartenderOptionsState: BartenderOptionsState = {
   tolerance: 0,
 
   openUrl: true,
+  urlSchemeWhitelist: defaultUrlSchemeWhitelist,
+  urlSchemeBlacklist: [],
   changeFocus: false,
   openTarget: "one-tab-each",
   openBehavior: "open-all",

@@ -20,27 +20,6 @@ export type KeysMatching<T, V> = {
   [K in keyof T]-?: T[K] extends V ? K : never;
 }[keyof T];
 
-export function useSetStateWithMessage<T extends keyof BartenderOptionsState>(
-  stateName: T,
-  setState: Dispatch<SetStateAction<BartenderOptionsState[T]>>
-) {
-  return useCallback(
-    (state: BartenderOptionsState[T]) => {
-      const message: StateUpdateMessage<T> = {
-        type: "state-update",
-        target: "options",
-        payload: {
-          stateName,
-          state,
-        },
-      };
-      chrome.runtime.sendMessage(message);
-      return setState(state);
-    },
-    [stateName, setState]
-  );
-}
-
 export function useStoreState<T extends keyof BartenderOptionsState>(
   stateName: T,
   useStore: UseBatenderOptionsStore,
@@ -72,7 +51,11 @@ export function useStoreState<T extends keyof BartenderOptionsState>(
     debouncedSetStore(state);
   }, [debouncedSetStore, state]);
 
-  const setStateAndSendMessage = useMessageSyncState(stateName, setState);
+  const setStateAndSendMessage = useMessageSyncState(
+    stateName,
+    state,
+    setState
+  );
 
   useEffect(() => {
     if (hasHydrated === true) {
@@ -85,6 +68,7 @@ export function useStoreState<T extends keyof BartenderOptionsState>(
 
 function useMessageSyncState<T extends keyof BartenderOptionsState>(
   stateName: T,
+  state: BartenderOptionsState[T],
   setState: Dispatch<SetStateAction<BartenderOptionsState[T]>>
 ) {
   const handleStateUpdateMessage = useCallback(
@@ -130,35 +114,55 @@ function useMessageSyncState<T extends keyof BartenderOptionsState>(
     };
   }, [handleMessage]);
 
+  const mark = useRef(false);
+
+  useEffect(() => {
+    if (mark.current === false) {
+      return;
+    }
+    mark.current = false;
+    const message: StateUpdateMessage<T> = {
+      type: "state-update",
+      target: "options",
+      payload: {
+        stateName,
+        state,
+      },
+    };
+    chrome.runtime.sendMessage(message);
+  }, [stateName, state]);
+
   return useCallback(
-    (state: BartenderOptionsState[T]) => {
-      setState(state);
-      const message: StateUpdateMessage<T> = {
-        type: "state-update",
-        target: "options",
-        payload: {
-          stateName,
-          state,
-        },
-      };
-      chrome.runtime.sendMessage(message);
+    (setStateAction: SetStateAction<BartenderOptionsState[T]>) => {
+      setState((prevState) => {
+        const currentState =
+          typeof setStateAction === "function"
+            ? setStateAction(prevState)
+            : setStateAction;
+        if (currentState !== prevState) {
+          mark.current = true;
+        }
+        return currentState;
+      });
     },
-    [setState, stateName]
+    [setState]
   );
 }
+
+//-------------------------------------------------------------------
 
 export function useCallbackRef<T, CB extends (() => unknown) | void>(
   rawCallback: (node: T) => CB
 ) {
-  const cleanUpRef = useRef<CB | null>(null);
+  const cleanupRef = useRef<CB | null>(null);
   return useCallback(
     (node: T | null) => {
-      if (cleanUpRef.current) {
-        cleanUpRef.current();
-        cleanUpRef.current = null;
+      if (cleanupRef.current) {
+        cleanupRef.current();
+        cleanupRef.current = null;
       }
       if (node) {
-        cleanUpRef.current = rawCallback(node);
+        cleanupRef.current = rawCallback(node);
       }
     },
     [rawCallback]
