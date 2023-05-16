@@ -12,20 +12,27 @@ import debounce from "lodash.debounce";
 import {
   UseBatenderOptionsStore,
   BartenderOptionsState,
-  StateUpdateMessage,
+  OptionSyncMessage,
   Message,
 } from "../common";
 
-export type KeysMatching<T, V> = {
-  [K in keyof T]-?: T[K] extends V ? K : never;
-}[keyof T];
-
+/**
+ * A hook to use the state of a store.
+ * @param {T} stateName - The name of the state to use.
+ * @param {UseBatenderOptionsStore} useStore - The store to use.
+ * @param {boolean} hasHydrated - Whether the store has been hydrated.
+ * @param {number} [wait] - The number of milliseconds to wait before setting the store state.
+ * @returns {[BartenderOptionsState[T], Dispatch<SetStateAction<BartenderOptionsState[T]>>]} - An array containing the state and a function to set the state.
+ */
 export function useStoreState<T extends keyof BartenderOptionsState>(
   stateName: T,
   useStore: UseBatenderOptionsStore,
   hasHydrated: boolean,
   wait?: number
-) {
+): [
+  BartenderOptionsState[T],
+  Dispatch<SetStateAction<BartenderOptionsState[T]>>
+] {
   const [state, setState] = useState(useStore.getState()[stateName]);
 
   const debouncedSetStoreFunction = useMemo(
@@ -63,18 +70,25 @@ export function useStoreState<T extends keyof BartenderOptionsState>(
     }
   }, [hasHydrated, setStateAndSendMessage, useStore, stateName]);
 
-  return [state, setStateAndSendMessage] as const;
+  return [state, setStateAndSendMessage];
 }
 
+/**
+ * A hook to synchronize state with messages.
+ * @param {T} stateName - The name of the state to synchronize.
+ * @param {BartenderOptionsState[T]} state - The state to synchronize.
+ * @param {Dispatch<SetStateAction<BartenderOptionsState[T]>>} setState - A function to set the state.
+ * @returns {Dispatch<SetStateAction<BartenderOptionsState[T]>>} - A function to set the state and send a message.
+ */
 function useMessageSyncState<T extends keyof BartenderOptionsState>(
   stateName: T,
   state: BartenderOptionsState[T],
   setState: Dispatch<SetStateAction<BartenderOptionsState[T]>>
-) {
-  const handleStateUpdateMessage = useCallback(
+): Dispatch<SetStateAction<BartenderOptionsState[T]>> {
+  const handleOptionSyncMessage = useCallback(
     async ({
       payload: { state, stateName: incomingStateName },
-    }: StateUpdateMessage<T>) => {
+    }: OptionSyncMessage<T>) => {
       if (incomingStateName === stateName) {
         setState(state);
       }
@@ -92,9 +106,9 @@ function useMessageSyncState<T extends keyof BartenderOptionsState>(
         return;
       }
       switch (message.type) {
-        case "state-update":
+        case "option-sync":
           {
-            handleStateUpdateMessage(message);
+            handleOptionSyncMessage(message);
             sendResponse();
           }
           break;
@@ -104,7 +118,7 @@ function useMessageSyncState<T extends keyof BartenderOptionsState>(
       }
       return true;
     },
-    [handleStateUpdateMessage]
+    [handleOptionSyncMessage]
   );
 
   useEffect(() => {
@@ -121,8 +135,8 @@ function useMessageSyncState<T extends keyof BartenderOptionsState>(
       return;
     }
     mark.current = false;
-    const message: StateUpdateMessage<T> = {
-      type: "state-update",
+    const message: OptionSyncMessage<T> = {
+      type: "option-sync",
       target: "options",
       payload: {
         stateName,
@@ -149,11 +163,14 @@ function useMessageSyncState<T extends keyof BartenderOptionsState>(
   );
 }
 
-//-------------------------------------------------------------------
-
+/**
+ * A hook to create a callback ref.
+ * @param {(node: T) => CB} rawCallback - A function that takes a node and returns a callback.
+ * @returns {(node: T | null) => void} - A callback ref that takes a node or null.
+ */
 export function useCallbackRef<T, CB extends (() => unknown) | void>(
   rawCallback: (node: T) => CB
-) {
+): (node: T | null) => void {
   const cleanupRef = useRef<CB | null>(null);
   return useCallback(
     (node: T | null) => {
@@ -169,9 +186,13 @@ export function useCallbackRef<T, CB extends (() => unknown) | void>(
   );
 }
 
+/**
+ * A hook to create a callback ref that stops wheel event propagation.
+ * @returns {(node: T | null) => void} - A callback ref that takes an HTMLElement or null.
+ */
 export function useStopWheelPropagationCallbackRef<
   T extends HTMLElement = HTMLElement
->() {
+>(): (node: T | null) => void {
   const handleWheel = useCallback((e: WheelEvent) => {
     e.stopPropagation();
   }, []);

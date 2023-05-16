@@ -5,9 +5,20 @@ import {
   BartenderOptionsState,
   UseBatenderOptionsStore,
   SelectType,
+  KeysMatching,
 } from "../../common";
-import { KeysMatching, useStoreState } from "../utils";
+import { useStoreState } from "../utils";
 
+/**
+ * A hook for using a select control.
+ * @template T - The type of the stateName.
+ * @param {T} stateName - The name of the state to use.
+ * @param {boolean} hasHydrated - Whether the component has hydrated.
+ * @param {UseBatenderOptionsStore} useStore - The store to use.
+ * @param {(s: string) => BartenderOptionsState[T]} [typecast] - A function to typecast the value.
+ * @param {number} [wait=250] - The wait time in milliseconds.
+ * @returns {[BartenderOptionsState[T], ChangeEventHandler<HTMLInputElement>]} - The state and the change event handler.
+ */
 export function useSelectControl<
   T extends KeysMatching<BartenderOptionsState, SelectType>
 >(
@@ -17,7 +28,7 @@ export function useSelectControl<
   typecast: (s: string) => BartenderOptionsState[T] = (s) =>
     s as BartenderOptionsState[T],
   wait = 250
-) {
+): [BartenderOptionsState[T], ChangeEventHandler<HTMLInputElement>] {
   const [state, setState] = useStoreState(
     stateName,
     useStore,
@@ -36,9 +47,21 @@ export function useSelectControl<
     [hasHydrated, typecast, setState]
   );
 
-  return [state, handleStateChange] as const;
+  return [state, handleStateChange];
 }
 
+/**
+ * A select control component.
+ * @template T - The type of the value.
+ * @param {Object} props - The props for the component.
+ * @param {string} props.label - The label for the select control.
+ * @param {BartenderOptionsState[T]} props.value - The current value of the select control.
+ * @param {ChangeEventHandler<HTMLInputElement>} props.onChange - The change event handler for the select control.
+ * @param {readonly BartenderOptionsState[T][]} props.valueOptions - The options for the select control.
+ * @param {(valueOption: BartenderOptionsState[T]) => string} [props.valueOptionMap] - A function to map value options to display strings.
+ * @param {boolean} [props.hydrated=true] - Whether the component is hydrated.
+ * @param {boolean} [props.disabled=false] - Whether the select control is disabled.
+ */
 export function SelectControl<
   T extends KeysMatching<BartenderOptionsState, SelectType>
 >({

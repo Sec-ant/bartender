@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.web.json",
+  "compilerOptions": {
+    "rootDir": "..",
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false
+  },
+  "include": ["../**/*"]
+}

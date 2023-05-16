@@ -1,6 +1,6 @@
 {
   "extends": "../tsconfig.web.json",
-  "exclude": ["options/**/*"],
+  // "exclude": ["options/**/*", "popup/**/*", "content-script/**/*"],
   "compilerOptions": {
     "moduleResolution": "nodenext"
   }

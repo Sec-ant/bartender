@@ -1,10 +1,19 @@
 import { Resvg } from "@resvg/resvg-wasm";
 import { orient2dfast as orient } from "robust-predicates";
-import type { WriteClipboardMessage } from "../common/message.js";
+import type { ClipboardWriteMessage } from "../common/message.js";
 import { bartenderStore } from "./store.js";
 import { BartenderOptionsState } from "../common/store.js";
 import { assertNever } from "assert-never";
 
+/**
+ * Checks if the given text is a URL.
+ * @function
+ * @param {string} text - The text to check.
+ * @param {Object} [options] - The options for the check.
+ * @param {string[]} [options.urlSchemeWhitelist] - The list of allowed URL schemes.
+ * @param {string[]} [options.urlSchemeBlacklist] - The list of disallowed URL schemes.
+ * @returns {boolean} - Returns true if the text is a URL, false otherwise.
+ */
 export function isUrl(
   text: string,
   {
@@ -39,11 +48,20 @@ export function isUrl(
   }
 }
 
+/**
+ * Converts an image URL to image data.
+ * @async
+ * @function
+ * @param {string} imageUrl - The URL of the image to convert.
+ * @param {number} [width] - The width of the resulting image data.
+ * @param {number} [height] - The height of the resulting image data.
+ * @returns {Promise<ImageData>} - Returns a promise that resolves to the image data.
+ */
 export async function imageUrlToImageData(
   imageUrl: string,
   width?: number,
   height?: number
-) {
+): Promise<ImageData> {
   const resp = await fetch(imageUrl);
   if (!resp.ok) {
     throw new Error(`Failed to request the image: ${imageUrl}`);
@@ -69,9 +87,22 @@ export async function imageUrlToImageData(
   return imageData;
 }
 
+/**
+ * Logs an image to the console.
+ * @async
+ * @function
+ * @param {Blob} blob - The image blob to log.
+ * @param {Object} [options] - The options for the log.
+ * @param {number} [options.size] - The size of the image in the console.
+ * @param {string} [options.color] - The background color of the image in the console.
+ * @returns {Promise<string>} - Returns a promise that resolves to the console log string.
+ */
 export async function consoleImage(
   blob: Blob,
-  { size: s = 100, color: c = "transparent" } = {}
+  {
+    size: s = 100,
+    color: c = "transparent",
+  }: { size?: number; color?: string } = {}
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
@@ -108,6 +139,19 @@ export async function consoleImage(
   });
 }
 
+/**
+ * Opens the URLs of the detected barcodes.
+ * @async
+ * @function
+ * @param {DetectedBarcode[]} results - The detected barcodes.
+ * @param {Object} options - The options for opening the URLs.
+ * @param {string[]} options.urlSchemeWhitelist - The list of allowed URL schemes.
+ * @param {string[]} options.urlSchemeBlacklist - The list of disallowed URL schemes.
+ * @param {boolean} options.changeFocus - Whether to change focus to the opened URL.
+ * @param {string} options.openTarget - The target for opening the URLs.
+ * @param {string} options.openBehavior - The behavior for opening the URLs.
+ * @param {number} options.maxUrlCount - The maximum number of URLs to open.
+ */
 export async function openUrl(
   results: DetectedBarcode[],
   {
@@ -185,6 +229,16 @@ export async function openUrl(
   }
 }
 
+/**
+ * Copies the raw values of the detected barcodes to the clipboard.
+ * @async
+ * @function
+ * @param {DetectedBarcode[]} results - The detected barcodes.
+ * @param {Object} options - The options for copying to the clipboard.
+ * @param {string} options.copyBehavior - The behavior for copying to the clipboard.
+ * @param {number} options.copyInterval - The interval between copying to the clipboard.
+ * @param {number} options.maxCopyCount - The maximum number of values to copy to the clipboard.
+ */
 export async function copyToClipboard(
   results: DetectedBarcode[],
   {
@@ -221,8 +275,8 @@ export async function copyToClipboard(
     default:
       return assertNever(copyBehavior);
   }
-  const message: WriteClipboardMessage = {
-    type: "clipboard",
+  const message: ClipboardWriteMessage = {
+    type: "clipboard-write",
     target: "offscreen",
     payload: {
       contents: rescheduledResults.map((r) => r.rawValue),
@@ -234,13 +288,14 @@ export async function copyToClipboard(
 }
 
 /**
- * source: https://github.com/mikolalysenko/robust-point-in-polygon
- *         https://github.com/mikolalysenko/robust-point-in-polygon/issues/2#issuecomment-1371537705
- * @param vs
- * @param point
- * @returns
+ * Determines if a point is inside a polygon.
+ * Source: https://github.com/mikolalysenko/robust-point-in-polygon
+ * https://github.com/mikolalysenko/robust-point-in-polygon/issues/2#issuecomment-1371537705
+ * @function
+ * @param {(readonly [number, number])[]} vs - The vertices of the polygon.
+ * @param {readonly [number, number]} point - The point to check.
+ * @returns {-1 | 0 | 1} - Returns -1 if the point is outside the polygon, 0 if it is on the edge of the polygon, and 1 if it is inside the polygon.
  */
-
 export function robustPointInPolygon(
   vs: (readonly [number, number])[],
   [x, y]: readonly [number, number]
@@ -317,6 +372,17 @@ export function robustPointInPolygon(
   return (2 * inside - 1) as -1 | 1;
 }
 
+/**
+ * Sets the badge of the action.
+ * @async
+ * @function
+ * @param {Object} options - The options for setting the badge.
+ * @param {string} [options.backgroundColor] - The background color of the badge.
+ * @param {string} options.text - The text of the badge.
+ * @param {string} [options.textColor] - The text color of the badge.
+ * @param {Promise<ReturnType<typeof setTimeout>>} [options.promise] - A promise that resolves to a timeout ID.
+ * @param {Parameters<typeof setTimeout>} [options.timeoutArgs] - The arguments for the setTimeout call.
+ */
 export async function setBadge({
   backgroundColor,
   text,
@@ -360,6 +426,14 @@ export async function setBadge({
 
 export type BadgeType = "busy" | "intermediate" | "complete" | "clear";
 
+/**
+ * Alters the badge effect.
+ * @async
+ * @function
+ * @param {BadgeType} type - The type of badge effect to apply.
+ * @param {number} [num] - The number to display on the badge.
+ * @param {number} [wait] - The time to wait before clearing the badge.
+ */
 export const alterBadgeEffect = (() => {
   let alterBadgeEffectTask = Promise.resolve(
     setTimeout(() => {

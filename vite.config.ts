@@ -26,6 +26,13 @@ export default defineConfig({
           },
           {
             lib: {
+              entry: { popup: "./src/popup/index.tsx" },
+              formats: ["es"],
+              fileName: (_, entryName) => entryName + ".js",
+            },
+          },
+          {
+            lib: {
               entry: { "service-worker": "./src/service-worker/index.ts" },
               formats: ["es"],
               fileName: (_, entryName) => entryName + ".js",

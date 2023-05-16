@@ -1,3 +1,8 @@
+/**
+ * Checks if an element is visible.
+ * @param {Element} element - The element to check.
+ * @returns {boolean} - Whether the element is visible.
+ */
 export function isElementVisible(element: Element): boolean {
   let isVisible = element.checkVisibility?.({
     checkOpacity: true,
@@ -15,6 +20,11 @@ export function isElementVisible(element: Element): boolean {
   return isVisible;
 }
 
+/**
+ * Gets the URL of an image-like element.
+ * @param {Element} element - The element to get the URL from.
+ * @returns {string | undefined} - The URL of the element, or undefined if it could not be determined.
+ */
 export function getUrlFromImageLikeElement(
   element: Element
 ): string | undefined {
@@ -69,6 +79,11 @@ export function getUrlFromImageLikeElement(
   return undefined;
 }
 
+/**
+ * Checks if an element is an HTMLImageElement.
+ * @param {Element} element - The element to check.
+ * @returns {element is HTMLImageElement} - Whether the element is an HTMLImageElement.
+ */
 export function isHTMLImageElement(
   element: Element
 ): element is HTMLImageElement {
@@ -79,6 +94,11 @@ export function isHTMLImageElement(
   }
 }
 
+/**
+ * Checks if an element is an SVGSVGElement.
+ * @param {Element} element - The element to check.
+ * @returns {element is SVGSVGElement} - Whether the element is an SVGSVGElement.
+ */
 export function isSVGSVGElement(element: Element): element is SVGSVGElement {
   try {
     return element instanceof SVGSVGElement;
@@ -87,6 +107,11 @@ export function isSVGSVGElement(element: Element): element is SVGSVGElement {
   }
 }
 
+/**
+ * Checks if an element is an SVGImageElement.
+ * @param {Element} element - The element to check.
+ * @returns {element is SVGImageElement} - Whether the element is an SVGImageElement.
+ */
 export function isSVGImageElement(
   element: Element
 ): element is SVGImageElement {
@@ -97,6 +122,11 @@ export function isSVGImageElement(
   }
 }
 
+/**
+ * Checks if an element is an HTMLCanvasElement.
+ * @param {Element} element - The element to check.
+ * @returns {element is HTMLCanvasElement} - Whether the element is an HTMLCanvasElement.
+ */
 export function isHTMLCanvasElement(
   element: Element
 ): element is HTMLCanvasElement {
@@ -107,6 +137,11 @@ export function isHTMLCanvasElement(
   }
 }
 
+/**
+ * Checks if an element is an HTMLVideoElement.
+ * @param {Element} element - The element to check.
+ * @returns {element is HTMLVideoElement} - Whether the element is an HTMLVideoElement.
+ */
 export function isHTMLVideoElement(
   element: Element
 ): element is HTMLVideoElement {
@@ -117,6 +152,11 @@ export function isHTMLVideoElement(
   }
 }
 
+/**
+ * Converts an SVGElement to a data URI.
+ * @param {SVGElement} svg - The SVGElement to convert.
+ * @returns {string} - The data URI of the SVGElement.
+ */
 export function svgToTinyDataUri(svg: SVGElement): string {
   const reWhitespace = /\s+/g;
   const reUrlHexPairs = /%[\dA-F]{2}/g;
@@ -136,6 +176,10 @@ export function svgToTinyDataUri(svg: SVGElement): string {
   return "data:image/svg+xml," + svgString;
 }
 
+/**
+ * Gets the absolute URL of a relative URL.
+ * @returns {(url: string) => string} - A function that takes a relative URL and returns its absolute URL.
+ */
 export const getAbsoluteUrl = (() => {
   let a: HTMLAnchorElement | undefined;
   return (url: string) => {
@@ -145,6 +189,10 @@ export const getAbsoluteUrl = (() => {
   };
 })();
 
+/**
+ * Gets the data URL of an image-like element.
+ * @returns {(image: HTMLImageElement | SVGImageElement | HTMLVideoElement) => string} - A function that takes an image-like element and returns its data URL.
+ */
 export const getDataUrlFromImageLikeElement = (() => {
   let canvas: HTMLCanvasElement | undefined;
   return (image: HTMLImageElement | SVGImageElement | HTMLVideoElement) => {

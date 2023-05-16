@@ -1,7 +1,10 @@
 import { BartenderOptionsState } from "./store.js";
 
-export interface ContextMenuOpenedMessage {
-  type: "context-menu-opened";
+/**
+ * A message sent when the context menu is opened.
+ */
+export interface DetectionPrepareMessage {
+  type: "detection-prepare";
   target: "service-worker";
   payload: {
     x: number;
@@ -13,8 +16,12 @@ export interface ContextMenuOpenedMessage {
     imageUrl: string | undefined;
   };
 }
-export interface WriteClipboardMessage {
-  type: "clipboard";
+
+/**
+ * A message to write to the clipboard.
+ */
+export interface ClipboardWriteMessage {
+  type: "clipboard-write";
   target: "offscreen";
   payload: {
     contents: string[];
@@ -23,8 +30,11 @@ export interface WriteClipboardMessage {
   };
 }
 
-export interface StateUpdateMessage<T extends keyof BartenderOptionsState> {
-  type: "state-update";
+/**
+ * A message to sync the option.
+ */
+export interface OptionSyncMessage<T extends keyof BartenderOptionsState> {
+  type: "option-sync";
   target: "options";
   payload: {
     stateName: T;
@@ -32,7 +42,17 @@ export interface StateUpdateMessage<T extends keyof BartenderOptionsState> {
   };
 }
 
+export interface PageSelectMessage {
+  type: "page-select";
+  target: "content-script";
+  payload: null;
+}
+
+/**
+ * A type representing a message.
+ */
 export type Message =
-  | ContextMenuOpenedMessage
-  | WriteClipboardMessage
-  | StateUpdateMessage<never>;
+  | DetectionPrepareMessage
+  | ClipboardWriteMessage
+  | OptionSyncMessage<never>
+  | PageSelectMessage;

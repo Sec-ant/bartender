@@ -8,6 +8,7 @@ import {
   Grid,
   Box,
   Link,
+  Theme,
 } from "@mui/material";
 
 import {
@@ -28,7 +29,11 @@ import {
   EditableMultiSelectControl,
 } from "./EditableMultiSelectControl";
 
-function useAutoTheme() {
+/**
+ * A hook for using an auto theme.
+ * @returns {Theme} - The theme.
+ */
+function useAutoTheme(): Theme {
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
   const theme = useMemo(
     () =>
@@ -52,6 +57,9 @@ function useAutoTheme() {
   return theme;
 }
 
+/**
+ * The App component.
+ */
 function App() {
   const theme = useAutoTheme();
 
@@ -79,6 +87,12 @@ function App() {
 
   const [openUrl, handleOpenUrlChange] = useSwitchControl(
     "openUrl",
+    hasHydrated,
+    useBartenderOptionsStore
+  );
+
+  const [changeFocus, handleChangeFocusChange] = useSwitchControl(
+    "changeFocus",
     hasHydrated,
     useBartenderOptionsStore
   );
@@ -124,12 +138,6 @@ function App() {
     hasHydrated,
     useBartenderOptionsStore,
     consolidateUrlSchemes
-  );
-
-  const [changeFocus, handleChangeFocusChange] = useSwitchControl(
-    "changeFocus",
-    hasHydrated,
-    useBartenderOptionsStore
   );
 
   const [openTarget, handleOpenTargetChange] = useSelectControl(
@@ -235,6 +243,15 @@ function App() {
             />
           </Grid>
           <Grid item xs={6}>
+            <SwitchControl
+              label="Auto change focus"
+              value={changeFocus}
+              onChange={handleChangeFocusChange}
+              disabled={!openUrl}
+              hydrated={hasHydrated}
+            />
+          </Grid>
+          <Grid item xs={6}>
             <EditableMultiSelectControl
               label="URL Scheme Whitelist"
               placeholder="*"
@@ -256,15 +273,6 @@ function App() {
               inputValue={urlSchemeBlacklistInputValue}
               onInputChange={handleUrlSchemeBlacklistInputChange}
               disabled={!openUrl || urlSchemeWhitelist.length > 0}
-              hydrated={hasHydrated}
-            />
-          </Grid>
-          <Grid item xs={6}>
-            <SwitchControl
-              label="Auto change focus"
-              value={changeFocus}
-              onChange={handleChangeFocusChange}
-              disabled={!openUrl}
               hydrated={hasHydrated}
             />
           </Grid>

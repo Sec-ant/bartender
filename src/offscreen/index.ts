@@ -1,9 +1,16 @@
-import type { Message, WriteClipboardMessage } from "../common/message.js";
+import type { Message, ClipboardWriteMessage } from "../common/message.js";
 
 const textareaElement = document.querySelector("#text") as HTMLTextAreaElement;
 
 chrome.runtime.onMessage.addListener(handleMessage);
 
+/**
+ * Handles incoming messages from the Chrome runtime.
+ * @param {Message} message - The incoming message.
+ * @param {chrome.runtime.MessageSender} _ - The sender of the message.
+ * @param {() => void} sendResponse - Function to call to send a response.
+ * @returns {boolean | undefined} - Whether to keep the message channel open for sending a response asynchronously.
+ */
 function handleMessage(
   message: Message,
   _: chrome.runtime.MessageSender,
@@ -13,8 +20,8 @@ function handleMessage(
     return;
   }
   switch (message.type) {
-    case "clipboard":
-      handleWriteClipboardMessage(message).then(sendResponse);
+    case "clipboard-write":
+      handleClipboardWriteMessage(message).then(sendResponse);
       break;
     default:
       sendResponse();
@@ -23,9 +30,14 @@ function handleMessage(
   return true;
 }
 
-async function handleWriteClipboardMessage({
+/**
+ * Handles a ClipboardWriteMessage by writing its contents to the clipboard.
+ * @param {ClipboardWriteMessage} param0 - The ClipboardWriteMessage to handle.
+ * @returns {Promise<unknown>} - A Promise that resolves when the message has been handled.
+ */
+async function handleClipboardWriteMessage({
   payload: { contents, copyInterval, maxCopyCount },
-}: WriteClipboardMessage): Promise<unknown> {
+}: ClipboardWriteMessage): Promise<unknown> {
   try {
     for (let i = 0; i < Math.min(contents.length, maxCopyCount); ++i) {
       if (i !== 0) {
